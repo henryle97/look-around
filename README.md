@@ -56,7 +56,9 @@ open it, and drag LookAround into Applications.
 - **Smart Pause** — breaks wait during meetings/calls, video playback,
   screen recording/sharing, deep-focus apps and fullscreen apps, with a
   configurable cooldown after activity ends. Detection is heuristic and
-  permission-free (running apps + frontmost-window geometry + idle state).
+  permission-free (running apps + frontmost-window geometry + idle state);
+  an optional calendar-events check can also pause breaks during scheduled
+  meetings, which needs Calendar access.
 - **Posture & blink reminders** — gentle macOS notifications on their own
   intervals with rotating messages (20-20-20 friendly).
 - **Customization** — break messages, gradient themes, break sounds.
@@ -90,9 +92,21 @@ To quit: menu bar → *Quit LookAround*. To reset everything: Settings → Stats
 
 ## Testing
 
-`./scripts/test-ui.sh` drives the real, running app end-to-end (no Xcode /
+All end-to-end tests drive the real, running app via `axdrive` (no Xcode /
 XCUITest — see [AGENTS.md](AGENTS.md) for why and how, and
-`tools/axdrive/` for the Accessibility-API driver behind it).
+`tools/axdrive/` for the Accessibility-API driver behind it):
+
+- `./scripts/test-ui.sh` — core menu-bar and break-overlay flows
+- `./scripts/test-break-flow.sh` — full break lifecycle: start, screenshot
+  the fullscreen overlay, skip, confirm it's gone
+- `./scripts/test-settings.sh` — a full settings tour: every sidebar page
+  opens, a screenshot lands per page, and representative edits persist
+- `./scripts/test-numeric-entry.sh` — direct numeric entry on stepper chips
+- `./scripts/test-theme.sh` — AppTheme and BreakMaterial pickers persist
+  across a restart
+- `./scripts/test-cask.sh` — Homebrew Cask audit, style, install, uninstall
+
+Run the full suite with `for f in scripts/test-*.sh; do $f || break; done`.
 
 `./scripts/test-unit.sh` runs a standalone unit-test binary for pure logic
 (scheduling rules, settings persistence, pause-reason evaluation) — no
@@ -102,30 +116,37 @@ XCTest/`swift test` either, see [docs/unit-testing.md](docs/unit-testing.md).
 
 ```
 Sources/LookAround/
-  LookAroundApp.swift   @main App: MenuBarExtra + Settings scenes, AppDelegate
-  Models.swift          Break/office-hours/planned/smart-pause/wellness/appearance/automation/stats types
-  SettingsStore.swift   ObservableObject settings + JSON persistence
-  BreakScheduler.swift  1-second timer state machine (breaks, snooze, planned, cooldown, wellness)
-  ActivityProbe.swift   idle time, frontmost/fullscreen detection (no permissions)
-  SmartPause.swift      rule evaluation → human-readable pause reason
-  UpdateChecker.swift   checks GitHub Releases for a newer version (detect + link out, no self-update)
-  WindowManager.swift   fullscreen overlay + heads-up + cursor-following countdown windows
-  BreakViews.swift      overlay, pre-break and floating-countdown views
-  MenuBarView.swift     menu-bar dropdown
-  SettingsView.swift    tabbed settings (Breaks, Planner, Smart Pause, Wellness, Appearance, Automations, Stats)
-  Helpers.swift         time formatting
-  Resources/Info.plist  bundle metadata (LSUIElement agent app)
-build.sh                compile + bundle + sign script
-tools/axdrive/          Accessibility-API UI driver (agent-driven testing, no Xcode)
-scripts/test-ui.sh      end-to-end UI test using axdrive
-Tests/LookAroundTests/  standalone unit-test binary for pure logic (no XCTest)
-scripts/test-unit.sh    compiles + runs Tests/LookAroundTests/
-AGENTS.md               how to test UI changes without Xcode/XCUITest
-docs/unit-testing.md    how to unit-test pure logic without XCTest/swift test
-docs/index.html         product website (GitHub Pages, served from /docs)
-scripts/package-dmg.sh  build + package a versioned, verified DMG
-scripts/release-local.sh  publish a release from a local machine (permission-gated)
-packaging/homebrew/     Cask template + tap setup/validation docs
+  LookAroundApp.swift    @main App: MenuBarExtra + Settings scenes, AppDelegate
+  Models.swift           Break/office-hours/planned/smart-pause/wellness/appearance/automation/stats types
+  SettingsStore.swift    ObservableObject settings + JSON persistence
+  BreakScheduler.swift   1-second timer state machine (breaks, snooze, planned, cooldown, wellness)
+  ActivityProbe.swift    idle time, frontmost/fullscreen detection (no permissions)
+  SmartPause.swift       rule evaluation → human-readable pause reason
+  CalendarMonitor.swift  optional EventKit calendar-event detection (permission-gated)
+  UpdateChecker.swift    checks GitHub Releases for a newer version (detect + link out, no self-update)
+  WindowManager.swift    fullscreen overlay + heads-up + cursor-following countdown windows
+  BreakViews.swift       overlay, pre-break and floating-countdown views
+  MenuBarView.swift      menu-bar dropdown
+  SettingsView.swift     sidebar shell + routing for the settings window
+  SettingsPages.swift    settings pages, part 1 (General, Screen Breaks, Planner, ...)
+  SettingsPages2.swift   settings pages, part 2 (Smart Pause, Wellness, Alerts, Sounds, ...)
+  AutomationRunner.swift runs Shell/AppleScript/Shortcuts automations off the main thread
+  SoundPlayer.swift      plays break sounds
+  Theme.swift            AppTheme / Liquid Glass styling
+  Helpers.swift          time formatting
+  Resources/Info.plist   bundle metadata (LSUIElement agent app)
+build.sh                 compile + bundle + sign script
+tools/axdrive/           Accessibility-API UI driver (agent-driven testing, no Xcode)
+scripts/test-*.sh        end-to-end UI test suites using axdrive (see Testing above)
+Tests/LookAroundTests/   standalone unit-test binary for pure logic (no XCTest)
+scripts/test-unit.sh     compiles + runs Tests/LookAroundTests/
+AGENTS.md                how to test UI changes without Xcode/XCUITest
+docs/unit-testing.md     how to unit-test pure logic without XCTest/swift test
+docs/index.html          product website (GitHub Pages, served from /docs)
+scripts/package-dmg.sh   build + package a versioned, verified DMG
+scripts/release-local.sh publish a release from a local machine (permission-gated)
+scripts/bump-cask.sh     bump the Homebrew Cask to a new version
+packaging/homebrew/      Cask template + tap setup/validation docs
 ```
 
 ## Deliberately out of scope
