@@ -116,13 +116,17 @@ struct MenuBarView: View {
                 HStack(spacing: 14) {
                     Menu {
                         Button("15 minutes") { scheduler.pauseWork(for: 15*60) }
+                            .disabled(scheduler.pausesLeft <= 0)
                         Button("1 hour") { scheduler.pauseWork(for: 3600) }
+                            .disabled(scheduler.pausesLeft <= 0)
                         Button("Until tomorrow") { scheduler.pauseWork(for: 12*3600) }
+                            .disabled(scheduler.pausesLeft <= 0)
                         if scheduler.manuallyPaused {
                             Button("Resume now") { scheduler.resumeWork() }
                         }
                     } label: {
-                        menuLabel(scheduler.manuallyPaused ? "Resume (paused)" : "Pause")
+                        menuLabel(scheduler.manuallyPaused ? "Resume (paused)"
+                                  : scheduler.pausesLeft <= 0 ? "Pause (none left today)" : "Pause")
                     }
                     .accessibilityIdentifier("menubar.pauseMenu")
                     Button("Reset") { scheduler.resetCycle() }

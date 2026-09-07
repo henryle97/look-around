@@ -26,15 +26,23 @@ func registerSettingsStoreTests(_ r: TestRunner) {
             let store = SettingsStore()
             store.breaks.workDuration = 45 * 60
             store.breaks.longBreakEvery = 5
+            store.breaks.maxSnoozesPerBreak = 2
+            store.breaks.pausesPerDay = 1
             store.wellness.blinkEnabled = false
             store.stats.shortBreaksTaken = 7
+            store.stats.snoozesUsedThisCycle = 1
+            store.stats.pausesUsedToday = 1
             store.save()
 
             let reloaded = SettingsStore()
             try expectEqual(reloaded.breaks.workDuration, 45 * 60)
             try expectEqual(reloaded.breaks.longBreakEvery, 5)
+            try expectEqual(reloaded.breaks.maxSnoozesPerBreak, 2)
+            try expectEqual(reloaded.breaks.pausesPerDay, 1)
             try expectFalse(reloaded.wellness.blinkEnabled)
             try expectEqual(reloaded.stats.shortBreaksTaken, 7)
+            try expectEqual(reloaded.stats.snoozesUsedThisCycle, 1)
+            try expectEqual(reloaded.stats.pausesUsedToday, 1)
         }
     }
 

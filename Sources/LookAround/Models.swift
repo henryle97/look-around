@@ -23,6 +23,8 @@ struct BreakSettings: Codable, Equatable {
     var skipDifficulty: SkipDifficulty = .balanced
     var skipDelay: TimeInterval = 5
     var snoozesPerDay: Int = 5
+    var maxSnoozesPerBreak: Int = 0        // 0 = no per-break cap, only the daily budget applies
+    var pausesPerDay: Int = 3
     var doubleEscapeAction: DoubleEscapeAction = .snooze5min
     var deferWhileTyping: Bool = true
     var allowEarlyEnd: Bool = true
@@ -256,6 +258,9 @@ struct BreakStats: Codable, Equatable {
     var breaksPostponed: Int = 0
     var snoozesUsedToday: Int = 0
     var snoozeDayKey: String = ""
+    var snoozesUsedThisCycle: Int = 0
+    var pausesUsedToday: Int = 0
+    var pauseDayKey: String = ""
     var naturalBreaks: Int = 0
     var naturalBreakMinutes: Double = 0
     var screenTimeTodayMinutes: Double = 0

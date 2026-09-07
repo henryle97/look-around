@@ -45,6 +45,7 @@ final class BreakScheduler: ObservableObject {
     @Published var overtimeElapsed: TimeInterval = 0
     @Published var overtimeVisible = false
     @Published var snoozesLeft: Int = 5
+    @Published var pausesLeft: Int = 3
     @Published var manuallyPaused = false
     @Published var pauseRemaining: TimeInterval = 0
     @Published var nextPlanned: PlannedBreak? = nil
@@ -113,12 +114,22 @@ final class BreakScheduler: ObservableObject {
     }
 
     private func consumeSnooze() {
-        rollSnoozeDayIfNeeded()
+        rollDayIfNeeded()
         settings.stats.snoozesUsedToday += 1
-        snoozesLeft = max(0, settings.breaks.snoozesPerDay - settings.stats.snoozesUsedToday)
+        settings.stats.snoozesUsedThisCycle += 1
+        recomputeSnoozesLeft()
     }
 
-    private func rollSnoozeDayIfNeeded() {
+    /// Effective remaining snoozes: the tighter of the daily budget and the
+    /// per-break-cycle cap (0 in `maxSnoozesPerBreak` means no per-cycle cap).
+    private func recomputeSnoozesLeft() {
+        let daily = max(0, settings.breaks.snoozesPerDay - settings.stats.snoozesUsedToday)
+        guard settings.breaks.maxSnoozesPerBreak > 0 else { snoozesLeft = daily; return }
+        let perCycle = max(0, settings.breaks.maxSnoozesPerBreak - settings.stats.snoozesUsedThisCycle)
+        snoozesLeft = min(daily, perCycle)
+    }
+
+    private func rollDayIfNeeded() {
         let key = dayKey(Date())
         if settings.stats.snoozeDayKey != key {
             settings.stats.snoozeDayKey = key
@@ -128,7 +139,12 @@ final class BreakScheduler: ObservableObject {
             settings.stats.screenTimeDayKey = key
             settings.stats.screenTimeTodayMinutes = 0
         }
-        snoozesLeft = max(0, settings.breaks.snoozesPerDay - settings.stats.snoozesUsedToday)
+        if settings.stats.pauseDayKey != key {
+            settings.stats.pauseDayKey = key
+            settings.stats.pausesUsedToday = 0
+        }
+        recomputeSnoozesLeft()
+        pausesLeft = max(0, settings.breaks.pausesPerDay - settings.stats.pausesUsedToday)
     }
 
     func handleDoubleEscape() {
@@ -148,7 +164,11 @@ final class BreakScheduler: ObservableObject {
     }
 
     func advanceSkip() {
-        // "Skip upcoming break": push by one work interval
+        // "Skip upcoming break": push by one work interval. This postpones
+        // the break exactly like a snooze does, so it draws from the same
+        // budget instead of bypassing it.
+        guard snoozesLeft > 0 else { return }
+        consumeSnooze()
         nextBreakAt = Date().addingTimeInterval(settings.breaks.workDuration)
         preBreakVisible = false
         settings.stats.breaksSkipped += 1
@@ -165,6 +185,10 @@ final class BreakScheduler: ObservableObject {
     }
 
     func pauseWork(for interval: TimeInterval) {
+        guard pausesLeft > 0 else { return }
+        rollDayIfNeeded()
+        settings.stats.pausesUsedToday += 1
+        pausesLeft = max(0, settings.breaks.pausesPerDay - settings.stats.pausesUsedToday)
         manuallyPaused = true
         pauseRemaining = interval
         settings.isPaused = true
@@ -211,7 +235,7 @@ final class BreakScheduler: ObservableObject {
 
     private func tick() {
         let now = Date()
-        rollSnoozeDayIfNeeded()
+        rollDayIfNeeded()
 
         // Manual pause
         if manuallyPaused {
@@ -401,7 +425,11 @@ final class BreakScheduler: ObservableObject {
 
     private func beginBreak(kind: BreakKind, planned: PlannedBreak? = nil) {
         let b = settings.breaks
-        rollSnoozeDayIfNeeded()
+        rollDayIfNeeded()
+        // Fresh per-break snooze budget for this break's own screen (snoozes
+        // spent postponing it while it was still upcoming don't carry over).
+        settings.stats.snoozesUsedThisCycle = 0
+        recomputeSnoozesLeft()
         let duration: TimeInterval
         let subtitle: String
         switch kind {
@@ -478,6 +506,9 @@ final class BreakScheduler: ObservableObject {
         clearOvertime()
         nextBreakAt = Date().addingTimeInterval(settings.breaks.workDuration)
         timeUntilNextBreak = settings.breaks.workDuration
+        // Fresh per-break snooze budget for the next work cycle's pre-break warning.
+        settings.stats.snoozesUsedThisCycle = 0
+        recomputeSnoozesLeft()
         AutomationRunner.runAll(settings.automations, trigger: .onBreakEnd)
     }
 

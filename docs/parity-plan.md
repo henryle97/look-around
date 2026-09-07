@@ -5,7 +5,8 @@ Oct 2023 – Sep 2026, condensed to distinct capabilities), checked against
 `Sources/LookAround` at commit `cc13fdf`.
 
 Status at survey time: 26 built, 2 partial, 6 not built, 5 out of scope.
-Two backlog claims were outdated on re-check (noted below).
+Two backlog claims were outdated on re-check (noted below). Since the
+survey, 1b+1c (Batch 1's first item) has been built — see the table below.
 
 ## Survey
 
@@ -13,8 +14,8 @@ Two backlog claims were outdated on re-check (noted below).
 | # | Feature | Status | Evidence |
 |---|---------|--------|----------|
 | 1a | Daily snooze / postpone limit | Built | `Models.swift:25,189-190` (`snoozesPerDay=5`, `snoozesUsedToday`); `BreakScheduler.swift:92-139` (guard + `consumeSnooze()` + daily reset); enforced in `BreakViews.swift:246-256`, `MenuBarView.swift:65-70` |
-| 1b | Per-session / per-break-cycle snooze cap | Not built | No `snoozesUsedThisCycle` counter; all 5 daily snoozes can burn on one break |
-| 1c | Skip / Pause consume budget | Not built | `advanceSkip():150-155` and `pauseWork(for:167-172)` bypass the snooze budget |
+| 1b | Per-session / per-break-cycle snooze cap | Built | `Models.swift` (`maxSnoozesPerBreak`, `BreakStats.snoozesUsedThisCycle`); `BreakScheduler.swift` (`recomputeSnoozesLeft()`, reset in `beginBreak`/`endBreak`); setting exposed as `settings.screenBreaks.maxPerBreak` |
+| 1c | Skip / Pause consume budget | Built | `advanceSkip()` now consumes the shared snooze budget; `pauseWork(for:)` gated on its own new daily cap (`pausesPerDay`/`pausesUsedToday`, `settings.screenBreaks.pausesPerDay`) |
 | 2 | Away-time as quiet toast + undo | Not built (greenfield) | Backlog says "full heads-up panel", actually silent: `BreakScheduler.swift:290-307` freezes timer, counts `naturalBreaks/minutes`. No toast view exists (`BreakViews.swift` has only PreBreak/FloatingCountdown/OvertimePill), no `WindowManager` away window |
 
 ### Triggering & control
@@ -42,12 +43,14 @@ licensing/seats, multi-language localization.
 ## Plan
 
 ### Batch 1 — quick wins
-- **1b+1c. Per-session snooze cap + close bypasses.** Add
-  `snoozesUsedThisCycle` to `BreakStats`, reset in `beginBreak/endBreak`,
-  guard in `snoozePreBreak/snoozeBreakScreen`. Decision needed: Skip
-  consumes 1, Pause gets its own daily cap. Settings: `maxSnoozesPerBreak`
-  ChipStepper (`settings.screenBreaks.maxPerBreak`). Accept: burn cap on one
-  break → controls disable + "No snoozes left".
+- **1b+1c. Per-session snooze cap + close bypasses. ✅ Done.** Added
+  `snoozesUsedThisCycle` to `BreakStats`, reset in `beginBreak`/`endBreak`,
+  guarded in `snoozePreBreak`/`snoozeBreakScreen`. Decision made: Skip
+  (`advanceSkip()`) now consumes 1 from the same budget; Pause got its own
+  daily cap (`pausesPerDay`/`pausesUsedToday`). Settings: `maxSnoozesPerBreak`
+  ChipStepper (`settings.screenBreaks.maxPerBreak`) + `pausesPerDay`
+  ChipStepper (`settings.screenBreaks.pausesPerDay`). Accept criterion met:
+  burning the cap on one break disables controls + shows "No snoozes left".
 - **7. Session lengths.** Stamp `workSegmentStart` at `endBreak`, push
   duration at `beginBreak` into capped `workDurations[]` (500), compute
   max/median in `BreakStats`, show two rows in `MenuBarView` + Stats page,
