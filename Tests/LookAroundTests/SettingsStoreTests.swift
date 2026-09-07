@@ -15,7 +15,7 @@ func registerSettingsStoreTests(_ r: TestRunner) {
     r.run("SettingsStore: a fresh store has documented defaults") {
         try withCleanDefaults {
             let store = SettingsStore()
-            try expectEqual(store.breaks.workDuration, 20 * 60)
+            try expectEqual(store.breaks.workDuration, 10 * 60)
             try expectEqual(store.plannedBreaks.count, 2)
             try expectFalse(store.isPaused)
         }
@@ -53,12 +53,12 @@ func registerSettingsStoreTests(_ r: TestRunner) {
             store.save()
 
             store.resetAll()
-            try expectEqual(store.breaks.workDuration, 20 * 60)
+            try expectEqual(store.breaks.workDuration, 10 * 60)
             try expectNil(UserDefaults.standard.data(forKey: SettingsStore.persistenceKey))
 
             // Nothing left to load back.
             let reloaded = SettingsStore()
-            try expectEqual(reloaded.breaks.workDuration, 20 * 60)
+            try expectEqual(reloaded.breaks.workDuration, 10 * 60)
         }
     }
 }

@@ -21,7 +21,11 @@ func registerAppearanceSettingsTests(_ r: TestRunner) {
         let decoded = try JSONDecoder().decode(AppearanceSettings.self, from: json)
         try expectEqual(decoded.appTheme, .system)
         try expectEqual(decoded.breakMaterial, .frosted)
-        try expectEqual(decoded.shortMessages, ["Look away"])
+        // Pre-BreakPrompt snapshots stored plain [String] pools — each string
+        // becomes a .custom prompt (see AppearanceSettings.decodeMessagePool).
+        try expectEqual(decoded.shortMessages.map(\.text), ["Look away"])
+        try expectEqual(decoded.shortMessages.map(\.category), [.custom])
+        try expectEqual(decoded.longMessages.map(\.text), ["Stretch"])
         try expectEqual(decoded.gradientIndex, 2)
         try expectEqual(decoded.soundName, .rain)
         try expectFalse(decoded.shortMessagesEnabled)

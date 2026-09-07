@@ -1,5 +1,46 @@
 import Foundation
 
+// MARK: - Break-prompt selection
+//
+// Weighted random pick over a `[BreakPrompt]` pool that avoids immediate
+// repeats and, where an alternative exists, avoids repeating the category
+// shown last time — so an eye-break pool doesn't say "blink" three times
+// running. Pure/deterministic given its inputs, so it's unit-testable
+// without touching BreakScheduler's timer/state machine.
+enum PromptPicker {
+    /// Prompts eligible for the *next* pick: recently-shown ids are
+    /// excluded first (falling back to the full pool if nothing would be
+    /// left), then prompts sharing `lastCategory` are excluded where an
+    /// alternative category exists.
+    static func candidates(from pool: [BreakPrompt], recentIDs: [String], lastCategory: PromptCategory?) -> [BreakPrompt] {
+        guard !pool.isEmpty else { return [] }
+        let unseen = pool.filter { !recentIDs.contains($0.id) }
+        let notRecentlyShown = unseen.isEmpty ? pool : unseen
+        guard let lastCategory else { return notRecentlyShown }
+        let differentCategory = notRecentlyShown.filter { $0.category != lastCategory }
+        return differentCategory.isEmpty ? notRecentlyShown : differentCategory
+    }
+
+    /// Picks one prompt from `pool`, weighted by `BreakPrompt.weight`
+    /// (non-positive weights count as 1). `randomIndex` defaults to real
+    /// randomness; tests inject a fixed index to make the pick deterministic.
+    static func pick(
+        from pool: [BreakPrompt], recentIDs: [String], lastCategory: PromptCategory?,
+        randomIndex: (Range<Int>) -> Int = { Int.random(in: $0) }
+    ) -> BreakPrompt? {
+        let pickFrom = candidates(from: pool, recentIDs: recentIDs, lastCategory: lastCategory)
+        guard !pickFrom.isEmpty else { return nil }
+        let totalWeight = pickFrom.reduce(0) { $0 + max(1, $1.weight) }
+        var roll = randomIndex(0..<totalWeight)
+        for p in pickFrom {
+            let w = max(1, p.weight)
+            if roll < w { return p }
+            roll -= w
+        }
+        return pickFrom.last
+    }
+}
+
 enum TimeFmt {
     static func mmss(_ interval: TimeInterval) -> String {
         let t = max(0, Int(interval.rounded()))
