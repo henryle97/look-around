@@ -190,6 +190,7 @@ struct SmartPausePage: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 Toggle("", isOn: isOn).labelsHidden()
+                    .accessibilityIdentifier("settings.smartPause.\(id)")
             }
             .padding(.vertical, 10)
             if expanded == id {
@@ -296,7 +297,8 @@ struct StatsSettingsPage: View {
             CardDivider()
             miniRow(dot: .pink, label: "Snoozes", value: "\(settings.stats.breaksPostponed)")
             CardDivider()
-            miniRow(dot: .pink, label: "Skipped", value: "\(settings.stats.breaksSkipped)")
+            miniRow(dot: .pink, label: "Skipped", value: "\(settings.stats.breaksSkipped)",
+                     axID: "settings.stats.skipped")
             CardDivider()
             miniRow(dot: .yellow, label: "Total screen time today",
                     value: TimeFmt.compact(settings.stats.screenTimeTodayMinutes * 60))
@@ -331,12 +333,13 @@ struct StatsSettingsPage: View {
         default: return "Your eyes are working overtime. Try fewer skips."
         }
     }
-    private func miniRow(dot: Color, label: String, value: String) -> some View {
+    private func miniRow(dot: Color, label: String, value: String, axID: String? = nil) -> some View {
         HStack {
             Circle().fill(dot).frame(width: 9, height: 9)
             Text(label).foregroundColor(.white)
             Spacer()
             Text(value).foregroundColor(.white.opacity(0.8)).monospacedDigit()
+                .accessibilityIdentifier(axID ?? "")
         }
         .padding(.vertical, 8)
     }
@@ -536,6 +539,7 @@ struct LockScreenPage: View {
         Card {
             SettingRow(label: "Show break status on the lock screen") {
                 Toggle("", isOn: $showStatus).labelsHidden()
+                    .accessibilityIdentifier("settings.lock.showStatus")
             }
             CardDivider()
             SettingRow(label: "Liquid Glass") {
@@ -580,6 +584,7 @@ struct SoundsPage: View {
             SettingRow(label: "Volume") {
                 Slider(value: $settings.appearance.soundVolume, in: 0...1)
                     .frame(width: 160)
+                    .accessibilityIdentifier("settings.sounds.volume")
             }
             CardDivider()
             HStack {
@@ -618,6 +623,7 @@ struct ShortcutsPage: View {
                 "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
         }
         .buttonStyle(.bordered)
+        .accessibilityIdentifier("settings.shortcuts.openAXSettings")
     }
     private func shortcutRow(_ label: String, keys: [String]) -> some View {
         HStack {
@@ -648,6 +654,7 @@ struct IPhoneSyncPage: View {
                     .font(.system(size: 20)).foregroundColor(.white.opacity(0.7))
                 VStack(alignment: .leading) {
                     Text("Not paired").font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                        .accessibilityIdentifier("settings.iphoneSync.status")
                     Text("No iPhone or iPad connected").font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.55))
                 }
@@ -738,6 +745,7 @@ struct AutomationPage: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.automation.row.\(a.name)")
                 }
                 if !items.isEmpty { CardDivider() }
                 HStack {
@@ -750,6 +758,7 @@ struct AutomationPage: View {
                         addNew(kind: .shell, trigger: trigger)
                     }
                     .buttonStyle(.bordered).controlSize(.regular)
+                    .accessibilityIdentifier("settings.automation.addScript")
                 }
                 .padding(.vertical, 8)
             }
@@ -775,6 +784,7 @@ struct AutomationEditor: View {
         VStack(alignment: .leading, spacing: 12) {
             TextField("Name", text: $script.name)
                 .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("settings.automation.nameField")
             HStack {
                 Picker("When", selection: $script.trigger) {
                     ForEach(AutomationScript.Trigger.allCases) {
@@ -801,6 +811,7 @@ struct AutomationEditor: View {
                     .foregroundColor(.red).buttonStyle(.bordered)
                 Button("Done") { onSave(script) }
                     .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("settings.automation.doneButton")
             }
         }
     }
@@ -824,6 +835,7 @@ struct AboutPage: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("LookAround").font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                     Text("Version 0.1.0").font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                        .accessibilityIdentifier("settings.about.version")
                     Text("A smart break reminder for your Mac.")
                         .font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
                 }

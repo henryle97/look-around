@@ -20,6 +20,14 @@ identifier, act on them, assert on the result — different mechanism.
    - `SettingsView.sideRow` derives its identifier from `SettingsRoute`
      automatically (`settings.nav.<route.navSlug>`) — add new routes to
      `navSlug` when you add a route.
+   - ⚠️ NEVER put `.accessibilityIdentifier` on a custom View struct root
+     (a page body, the overlay ZStack, …): SwiftUI stamps it over the whole
+     subtree and the descendants' own identifiers stop resolving. Tag the
+     leaf controls instead (buttons, steppers, toggles, texts). Stamping a
+     primitive container (`HStack`/`VStack`) is safe — children keep theirs.
+   - To assert "page X rendered", don't use a page-root marker (see above);
+     assert on one always-present control id per page instead — see
+     `sentinel_for` in `scripts/test-settings.sh`.
 3. Launch deterministically: `--ui-testing --reset-state` (see
    `UITesting` in `LookAroundApp.swift`). `--reset-state` wipes
    `SettingsStore.persistenceKey` before the store loads; `--ui-testing`
@@ -44,6 +52,8 @@ axdrive click <bundle-id> <identifier>                # AXPress
 axdrive increment/decrement <bundle-id> <id> [count]  # for ChipStepper
 axdrive read <bundle-id> <identifier>                 # AXValue as string
 axdrive tree <bundle-id>                               # dump the AX tree (debugging)
+axdrive shot-window <bundle-id> <title-sub> <out.png>  # capture one window by title
+axdrive shot-display <1|2> <out.png>                   # capture a whole display
 ```
 
 Bundle ID: `com.lookaround.app`. Requires Accessibility permission for
@@ -58,6 +68,21 @@ Known quirks:
   (timing race with app startup) — poll for the expected identifier and
   retry rather than assuming one click is enough (see `open_popover` in
   `scripts/test-ui.sh`).
+- The popover auto-dismisses when the app deactivates (e.g. a system
+  notification banner appears) — re-assert it is open before capturing or
+  clicking inside it (see `shot_popup` in `scripts/test-settings.sh`).
+- `click` retries its lookup for ~2s because the tree can be mid-mutation
+  (a timer-driven window opening/closing) at the moment of one lookup.
+- Pressing Quit (or anything that kills the app) usually reports
+  `press failed: -25204` — the AX reply round-trip dies with the app even
+  though the action lands. Assert on the process being gone instead.
+- Off-screen elements in a `ScrollView` ARE exposed (no scrolling needed
+  to `find` them) — verified, don't add scroll machinery.
+- `screencapture -m` only captures the main display on multi-monitor
+  setups; the Settings window may open on another display. Capture windows
+  by title (`shot-window`) for review screenshots, both displays
+  (`shot-display 1/2`) for popovers/overlays. Review captures land in
+  `/tmp/lookaround-screens/` (not committed).
 - Any UI change lands after SettingsStore's 400ms debounced autosave —
   sleep past that before killing the app in a persistence test.
 

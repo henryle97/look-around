@@ -17,6 +17,7 @@
 
 import ApplicationServices
 import AppKit
+import CoreGraphics
 import Foundation
 
 // MARK: - small helpers
@@ -162,8 +163,15 @@ func cmdFind(_ args: [String]) {
 
 func cmdClick(_ args: [String]) {
     guard args.count >= 2 else { fail("usage: axdrive click <bundle-id> <identifier>") }
-    guard let el = findInApp(bundleID: args[0], identifier: args[1]) else { fail("not found: \(args[1])") }
-    let err = AXUIElementPerformAction(el, kAXPressAction as CFString)
+    // Retry the lookup briefly: the tree can be mid-mutation (a window
+    // opening/closing on a timer) at the exact moment of a single lookup.
+    var el: AXUIElement?
+    for _ in 0..<10 {
+        if let hit = findInApp(bundleID: args[0], identifier: args[1]) { el = hit; break }
+        Thread.sleep(forTimeInterval: 0.2)
+    }
+    guard let target = el else { fail("not found: \(args[1])") }
+    let err = AXUIElementPerformAction(target, kAXPressAction as CFString)
     guard err == .success else { fail("press failed: \(err.rawValue)") }
     print("ok")
 }
@@ -205,8 +213,66 @@ func cmdMenuClick(_ args: [String]) {
     print("ok")
 }
 
-func cmdTree(_ args: [String]) {
-    guard let bundleID = args.first else { fail("usage: axdrive tree <bundle-id>") }
+/// On-screen windows owned by `pid` (excludes desktop elements).
+func cgWindows(ownerPID: pid_t) -> [[String: Any]] {
+    guard let list = CGWindowListCopyWindowInfo(
+        [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+    else { return [] }
+    return list.filter { ($0[kCGWindowOwnerPID as String] as? Int) == Int(ownerPID) }
+}
+
+func runScreencapture(_ args: [String], out: String) {
+    let p = Process()
+    p.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+    p.arguments = args + [out]
+    do {
+        try p.run()
+        p.waitUntilExit()
+    } catch {
+        fail("axdrive: screencapture failed: \(error)")
+    }
+    guard p.terminationStatus == 0 else { fail("axdrive: screencapture exited \(p.terminationStatus)") }
+    print("ok")
+}
+
+/// Capture one app window by title substring:
+///   shot-window <bundle-id> <title-substring> <out.png>
+func cmdShotWindow(_ args: [String]) {
+    guard args.count >= 3 else { fail("usage: axdrive shot-window <bundle-id> <title-substring> <out.png>") }
+    guard let app = runningApp(bundleID: args[0]) else { fail("axdrive: no running app with bundle id \(args[0])") }
+    let sub = args[1]
+    let wins = cgWindows(ownerPID: app.processIdentifier)
+    guard let num = wins.first(where: {
+        (($0[kCGWindowName as String] as? String) ?? "").localizedCaseInsensitiveContains(sub)
+    })?[kCGWindowNumber as String] as? Int else {
+        fail("axdrive: no on-screen window of \(args[0]) with title containing '\(sub)'")
+    }
+    runScreencapture(["-l\(num)"], out: args[2])
+}
+
+/// Capture a whole display by 1-based index (1 = main display, others
+/// left-to-right):   shot-display <index> <out.png>
+func cmdShotDisplay(_ args: [String]) {
+    guard args.count >= 2, let index = Int(args[0]), index >= 1 else {
+        fail("usage: axdrive shot-display <1-based-index> <out.png>")
+    }
+    // NSScreen ordering follows the display arrangement; pin the main
+    // display at index 1 for a stable mapping. screencapture -R wants
+    // Quartz coords (y down from the main display's top), Cocoa frames are
+    // y-up — convert.
+    guard let main = NSScreen.main else { fail("axdrive: no displays found") }
+    var rest = NSScreen.screens.filter { $0 != main }.sorted { $0.frame.minX < $1.frame.minX }
+    let screens = [main] + rest
+    guard index <= screens.count else {
+        fail("axdrive: only \(screens.count) display(s) found")
+    }
+    let f = screens[index - 1].frame
+    let qy = main.frame.height - (f.minY + f.height)
+    let rect = "\(Int(f.minX)),\(Int(qy)),\(Int(f.width)),\(Int(f.height))"
+    runScreencapture(["-R\(rect)"], out: args[1])
+}
+
+func cmdTree(_ args: [String]) {    guard let bundleID = args.first else { fail("usage: axdrive tree <bundle-id>") }
     let (app, _) = appElement(bundleID: bundleID)
     func dump(_ el: AXUIElement, depth: Int) {
         let role = axAttr(el, kAXRoleAttribute) as? String ?? "?"
@@ -235,6 +301,8 @@ guard let command = argv.first else {
       decrement <bundle-id> <identifier> [count]
       read <bundle-id> <identifier>
       tree <bundle-id>
+      shot-window <bundle-id> <title-substring> <out.png>
+      shot-display <1-based-index> <out.png>
     """)
 }
 let rest = Array(argv.dropFirst())
@@ -248,5 +316,7 @@ case "increment": cmdStep(rest, action: "increment")
 case "decrement": cmdStep(rest, action: "decrement")
 case "read": cmdRead(rest)
 case "tree": cmdTree(rest)
+case "shot-window": cmdShotWindow(rest)
+case "shot-display": cmdShotDisplay(rest)
 default: fail("axdrive: unknown command '\(command)'")
 }

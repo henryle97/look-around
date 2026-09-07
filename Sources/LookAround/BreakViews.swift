@@ -99,6 +99,7 @@ struct GlassPillButton: View {
     let title: String
     let systemImage: String
     var disabled: Bool = false
+    var axID: String? = nil
     let action: () -> Void
     var body: some View {
         Button(action: action) {
@@ -115,6 +116,7 @@ struct GlassPillButton: View {
             .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(axID ?? "")
         .opacity(disabled ? 0.45 : 1)
         .disabled(disabled)
     }
@@ -172,17 +174,20 @@ struct BreakOverlayView: View {
                 HStack(spacing: 14) {
                     if settings.breaks.skipDifficulty != .hardcore {
                         if scheduler.canEndEarly {
-                            GlassPillButton(title: "End Break", systemImage: "checkmark") {
+                            GlassPillButton(title: "End Break", systemImage: "checkmark",
+                                            axID: "break.endButton") {
                                 scheduler.endBreakEarly()
                             }
                         } else {
                             GlassPillButton(title: "Skip Break", systemImage: "chevron.right.2",
-                                            disabled: !scheduler.canSkip) {
+                                            disabled: !scheduler.canSkip,
+                                            axID: "break.skipButton") {
                                 scheduler.skipCurrentBreak()
                             }
                         }
                     }
-                    GlassPillButton(title: "Lock Screen", systemImage: "lock") {
+                    GlassPillButton(title: "Lock Screen", systemImage: "lock",
+                                    axID: "break.lockButton") {
                         scheduler.lockScreenNow()
                     }
                 }
@@ -243,10 +248,12 @@ struct PreBreakView: View {
                 Button("Start now") { scheduler.startBreakNow() }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
+                    .accessibilityIdentifier("prebreak.startNowButton")
                 Button("+1m") { scheduler.snoozePreBreak(by: 60) }
                 Button("+5m") { scheduler.snoozePreBreak(by: 5*60) }
                 Button("+15m") { scheduler.snoozePreBreak(by: 15*60) }
                 Button("Skip") { scheduler.advanceSkip() }
+                    .accessibilityIdentifier("prebreak.skipButton")
             }
             .controlSize(.small)
             .buttonStyle(.bordered)

@@ -16,6 +16,7 @@ struct GeneralPage: View {
             SettingRow(label: "Launch at login") {
                 Toggle("", isOn: $launchAtLogin)
                     .labelsHidden()
+                    .accessibilityIdentifier("settings.general.launchAtLogin")
                     .onChange(of: launchAtLogin) { on in setLaunchAtLogin(on) }
             }
             CardDivider()
@@ -92,19 +93,23 @@ struct ScreenBreaksPage: View {
             }
         }
         Card {
-            navRow(icon: "wand.and.stars", title: "Customize break screen", summary: "") {
+            navRow(icon: "wand.and.stars", title: "Customize break screen", summary: "",
+                    axID: "settings.nav.customizeScreen") {
                 route.append(.customizeScreen)
             }
             CardDivider()
-            navRow(icon: "figure.cooldown", title: "Long breaks", summary: longSummary) {
+            navRow(icon: "figure.cooldown", title: "Long breaks", summary: longSummary,
+                    axID: "settings.nav.longBreaks") {
                 route.append(.longBreaks)
             }
             CardDivider()
-            navRow(icon: "calendar", title: "Planned breaks", summary: plannedSummary) {
+            navRow(icon: "calendar", title: "Planned breaks", summary: plannedSummary,
+                    axID: "settings.nav.plannedBreaks") {
                 route.append(.plannedBreaks)
             }
             CardDivider()
-            navRow(icon: "clock", title: "Office hours", summary: officeSummary) {
+            navRow(icon: "clock", title: "Office hours", summary: officeSummary,
+                    axID: "settings.nav.officeHours") {
                 route.append(.officeHours)
             }
         }
@@ -193,7 +198,7 @@ struct ScreenBreaksPage: View {
 
     private var longSummary: String {
         guard settings.breaks.longBreakEnabled else { return "Off" }
-        return "Every \(ordinal(settings.breaks.longBreakEvery)) break is a \(Int(settings.breaks.longBreakDuration / 60)) mins long break"
+        return "Every \(ordinal(settings.breaks.longBreakEvery)) break is \(Int(settings.breaks.longBreakDuration / 60)) mins"
     }
     private var plannedSummary: String {
         let n = settings.plannedBreaks.filter(\.enabled).count
@@ -205,7 +210,7 @@ struct ScreenBreaksPage: View {
         return "\(hhmm(settings.officeHours.startMinutes)) to \(hhmm(settings.officeHours.endMinutes)) \(days)"
     }
 
-    private func navRow(icon: String, title: String, summary: String, go: @escaping () -> Void) -> some View {
+    private func navRow(icon: String, title: String, summary: String, axID: String? = nil, go: @escaping () -> Void) -> some View {
         Button(action: go) {
             HStack(spacing: 12) {
                 ZStack {
@@ -229,6 +234,7 @@ struct ScreenBreaksPage: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(axID ?? "")
     }
 
     private func enforcementCard(_ level: SkipDifficulty, icon: String, label: String, sub: String) -> some View {
@@ -313,6 +319,7 @@ struct OfficeHoursPage: View {
         Card {
             SettingRow(label: "Show breaks only during enabled days and hours") {
                 Toggle("", isOn: $settings.officeHours.enabled).labelsHidden()
+                    .accessibilityIdentifier("settings.officeHours.enabled")
             }
             CardDivider()
             SettingRow(label: "Scheduling preference") {
@@ -378,6 +385,7 @@ struct CustomizeScreenPage: View {
                             }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.customize.gradient.\(i)")
                 }
             }
             .padding(.vertical, 10)
@@ -450,6 +458,7 @@ struct PlannedBreaksPage: View {
             Spacer()
             Button("Add break") { route.append(.editPlanned(nil)) }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("settings.plannedBreaks.addButton")
         }
         if settings.plannedBreaks.isEmpty {
             Text("No planned breaks yet — add lunch or an afternoon walk.")

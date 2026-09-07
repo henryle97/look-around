@@ -52,19 +52,21 @@ struct LookAroundApp: App {
 }
 
 /// Compact menu-bar label: eye icon + live countdown.
+/// Uses Label (not a bare HStack) so the symbol stays optically centered
+/// on the countdown text instead of drifting off-baseline.
 struct MenuBarLabel: View {
     @EnvironmentObject var scheduler: BreakScheduler
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: scheduler.isOnBreak ? "cup.and.saucer.fill" : "eye.fill")
+        Group {
             if scheduler.isOnBreak {
-                Text(TimeFmt.mmss(scheduler.session?.remaining ?? 0))
-                    .monospacedDigit()
+                statusLabel(icon: "cup.and.saucer.fill",
+                            text: TimeFmt.mmss(scheduler.session?.remaining ?? 0))
             } else if scheduler.manuallyPaused {
                 Image(systemName: "pause.fill")
             } else if let t = scheduler.timeUntilNextBreak {
-                Text(TimeFmt.mmss(t))
-                    .monospacedDigit()
+                statusLabel(icon: "eye.fill", text: TimeFmt.mmss(t))
+            } else {
+                Image(systemName: "eye.fill")
             }
         }
         .onChange(of: scheduler.isOnBreak) { onBreak in
@@ -109,8 +111,15 @@ struct MenuBarLabel: View {
             }
         }
     }
-}
 
+    private func statusLabel(icon: String, text: String) -> some View {
+        Label {
+            Text(text).monospacedDigit()
+        } icon: {
+            Image(systemName: icon)
+        }
+    }
+}
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Dock-less menu-bar utility app, like the original.

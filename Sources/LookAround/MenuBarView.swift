@@ -18,13 +18,20 @@ struct MenuBarView: View {
                 Spacer()
                 HStack(spacing: 0) {
                     segButton("Now", .now)
+                        .accessibilityIdentifier("menubar.tab.now")
                     segButton("Stats", .stats)
+                        .accessibilityIdentifier("menubar.tab.stats")
                 }
                 .padding(3)
                 .background(Color.white.opacity(0.08), in: Capsule())
                 Spacer()
                 Button {
                     WindowManager.shared.openSettings(scheduler: scheduler, settings: settings)
+                    // Dismiss this popover so only Settings remains on screen.
+                    // MenuBarExtra offers no API for that; deactivation closes
+                    // the popover, then we reactivate for the Settings window.
+                    NSApp.deactivate()
+                    DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) }
                 } label: {
                     Image(systemName: "gearshape")
                         .foregroundColor(.white.opacity(0.7))
@@ -41,8 +48,18 @@ struct MenuBarView: View {
         .background(Color(red: 0.11, green: 0.12, blue: 0.17))
     }
 
-    private func segButton(_ title: String, _ t: PopupTab) -> some View {
-        Button(title) { tab = t }
+    /// Menu labels ignore the surrounding `.tint(.white)` and render dim —
+    /// paint them explicitly so menus read like the buttons next to them.
+    private func menuLabel(_ title: String) -> some View {
+        HStack(spacing: 4) {
+            Text(title).foregroundColor(.white)
+            Image(systemName: "chevron.down")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.white.opacity(0.7))
+        }
+    }
+
+    private func segButton(_ title: String, _ t: PopupTab) -> some View {        Button(title) { tab = t }
             .font(.system(size: 13, weight: .semibold))
             .foregroundColor(tab == t ? .white : .white.opacity(0.55))
             .padding(.horizontal, 18).padding(.vertical, 5)
@@ -57,31 +74,43 @@ struct MenuBarView: View {
             if scheduler.isOnBreak {
                 Button("Skip break") { scheduler.skipCurrentBreak() }
                     .disabled(!scheduler.canSkip)
+                    .accessibilityIdentifier("menubar.skipBreak")
                 Button("End break") { scheduler.endBreakEarly() }
                     .disabled(!scheduler.canEndEarly)
+                    .accessibilityIdentifier("menubar.endBreak")
             } else {
                 Button("Start short break now") { scheduler.startBreakNow(kind: .short) }
+                    .accessibilityIdentifier("menubar.startShortBreak")
                 Button("Start long break now") { scheduler.startBreakNow(kind: .long) }
-                Menu("Postpone next break") {
+                    .accessibilityIdentifier("menubar.startLongBreak")
+                Menu {
                     Button("+1 minute") { scheduler.snoozePreBreak(by: 60) }
                     Button("+5 minutes") { scheduler.snoozePreBreak(by: 300) }
                     Button("+15 minutes") { scheduler.snoozePreBreak(by: 900) }
+                } label: {
+                    menuLabel("Postpone next break")
                 }
                 .disabled(scheduler.snoozesLeft <= 0)
-                Menu(scheduler.manuallyPaused ? "Resume (paused)" : "Pause reminders") {
+                .opacity(scheduler.snoozesLeft <= 0 ? 0.45 : 1)
+                .accessibilityIdentifier("menubar.postponeMenu")
+                Menu {
                     Button("15 minutes") { scheduler.pauseWork(for: 15*60) }
                     Button("1 hour") { scheduler.pauseWork(for: 3600) }
                     Button("Until tomorrow") { scheduler.pauseWork(for: 12*3600) }
                     if scheduler.manuallyPaused {
                         Button("Resume now") { scheduler.resumeWork() }
                     }
+                } label: {
+                    menuLabel(scheduler.manuallyPaused ? "Resume (paused)" : "Pause reminders")
                 }
+                .accessibilityIdentifier("menubar.pauseMenu")
                 Button("Reset cycle") { scheduler.resetCycle() }
             }
             Divider().background(Color.white.opacity(0.15))
             Text("Taken \(settings.stats.shortBreaksTaken + settings.stats.longBreaksTaken + settings.stats.plannedBreaksTaken) • Skipped \(settings.stats.breaksSkipped) • Postponed \(settings.stats.breaksPostponed)")
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.5))
+                .accessibilityIdentifier("menubar.statsLine")
             Button("Quit LookAround") { NSApp.terminate(nil) }
                 .font(.caption)
                 .accessibilityIdentifier("menubar.quitButton")
