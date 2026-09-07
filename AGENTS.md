@@ -1,95 +1,80 @@
-# Agent-driven UI testing for LookAround
+# Project: LookAround
 
-This repo is intentionally Xcode-free (`build.sh` compiles with `swiftc`
-alone — see README.md). Only the Command Line Tools are installed here,
-so **XCUITest is not available** (`xcodebuild` errors with "requires
-Xcode"). End-to-end UI testing instead drives the real, running app
-through the macOS Accessibility (AX) API, via the small `axdrive` tool in
-`tools/axdrive/`. Same idea as XCUITest — find elements by a stable
-identifier, act on them, assert on the result — different mechanism.
+A native macOS menu-bar break-reminder app built with SwiftUI, compiled
+entirely with the Command Line Tools — no Xcode project, no XCUITest.
 
-## After modifying UI behavior
+- Menu-bar-only app (`LSUIElement`, no Dock icon) via `NSStatusItem` + `NSPopover`.
+- `BreakScheduler` is a 1-second timer state machine driving regular/planned
+  breaks, snoozing, Smart Pause, and wellness reminders.
+- Settings persist as JSON in `UserDefaults` via `SettingsStore`.
 
-1. Build: `./build.sh`.
-2. Give every interactive view a stable `.accessibilityIdentifier("…")`
-   (convention: `area.control`, e.g. `settings.screenBreaks.breakDuration`,
-   `menubar.settingsButton`). Never select by screen coordinates.
-   - A `ChipStepper` (see `SettingsView.swift`) takes an `id:` and exposes
-     both the stepper (`id`, drivable via increment/decrement) and its
-     formatted label (`"\(id).value"`, readable).
-   - `SettingsView.sideRow` derives its identifier from `SettingsRoute`
-     automatically (`settings.nav.<route.navSlug>`) — add new routes to
-     `navSlug` when you add a route.
-   - ⚠️ NEVER put `.accessibilityIdentifier` on a custom View struct root
-     (a page body, the overlay ZStack, …): SwiftUI stamps it over the whole
-     subtree and the descendants' own identifiers stop resolving. Tag the
-     leaf controls instead (buttons, steppers, toggles, texts). Stamping a
-     primitive container (`HStack`/`VStack`) is safe — children keep theirs.
-   - To assert "page X rendered", don't use a page-root marker (see above);
-     assert on one always-present control id per page instead — see
-     `sentinel_for` in `scripts/test-settings.sh`.
-3. Launch deterministically: `--ui-testing --reset-state` (see
-   `UITesting` in `LookAroundApp.swift`). `--reset-state` wipes
-   `SettingsStore.persistenceKey` before the store loads; `--ui-testing`
-   is available for tests to check/branch on later.
-4. If there's no existing test for the changed behavior, add one to
-   `scripts/test-ui.sh` (or a new `scripts/test-*.sh`), following the
-   existing "break duration persists" scenario as a template.
-5. Run `./scripts/test-ui.sh`. On failure: inspect the assertion output,
-   fix the root cause, rerun the failing script, then rerun the full
-   suite (`for f in scripts/test-*.sh; do $f || break; done`).
-6. Never leave a stray `LookAround` process running — every script should
-   `axdrive terminate` at the end (and at the start, before it launches).
+## Tech Stack
 
-## `axdrive` cheat sheet
+- Swift 6.1, SwiftUI + AppKit
+- macOS 13+, Apple Silicon only (`arm64-apple-macosx13.0`)
+- No external package dependencies (single executable target, see `Package.swift`)
+- Compiled directly with `swiftc` (not `xcodebuild`) — see `build.sh`
 
-```
-axdrive launch <path-to-.app> [--arg X] [--env K=V]   # NSWorkspace launch
-axdrive terminate <bundle-id>
-axdrive menu-click <bundle-id>                        # click the status-bar icon
-axdrive find <bundle-id> <identifier>                 # role/enabled/value
-axdrive click <bundle-id> <identifier>                # AXPress
-axdrive increment/decrement <bundle-id> <id> [count]  # for ChipStepper
-axdrive read <bundle-id> <identifier>                 # AXValue as string
-axdrive tree <bundle-id>                               # dump the AX tree (debugging)
-axdrive shot-window <bundle-id> <title-sub> <out.png>  # capture one window by title
-axdrive shot-display <1|2> <out.png>                   # capture a whole display
-```
+## Quality Gates
 
-Bundle ID: `com.lookaround.app`. Requires Accessibility permission for
-whatever process runs `axdrive` (grant once under System Settings →
-Privacy & Security → Accessibility).
+After making any code change:
 
-Known quirks:
-- The `MenuBarExtra` popover is **not** part of `kAXWindows` — it lives
-  under the app's own `AXExtrasMenuBar` attribute, which is why
-  `menu-click` is a separate command from `click`.
-- The very first `menu-click` right after a fresh launch can be a no-op
-  (timing race with app startup) — poll for the expected identifier and
-  retry rather than assuming one click is enough (see `open_popover` in
-  `scripts/test-ui.sh`).
-- The popover auto-dismisses when the app deactivates (e.g. a system
-  notification banner appears) — re-assert it is open before capturing or
-  clicking inside it (see `shot_popup` in `scripts/test-settings.sh`).
-- `click` retries its lookup for ~2s because the tree can be mid-mutation
-  (a timer-driven window opening/closing) at the moment of one lookup.
-- Pressing Quit (or anything that kills the app) usually reports
-  `press failed: -25204` — the AX reply round-trip dies with the app even
-  though the action lands. Assert on the process being gone instead.
-- Off-screen elements in a `ScrollView` ARE exposed (no scrolling needed
-  to `find` them) — verified, don't add scroll machinery.
-- `screencapture -m` only captures the main display on multi-monitor
-  setups; the Settings window may open on another display. Capture windows
-  by title (`shot-window`) for review screenshots, both displays
-  (`shot-display 1/2`) for popovers/overlays. Review captures land in
-  `/tmp/lookaround-screens/` (not committed).
-- Any UI change lands after SettingsStore's 400ms debounced autosave —
-  sleep past that before killing the app in a persistence test.
+- MUST run `./build.sh` to build (compiles with `swiftc`, bundles the
+  `.app`, ad-hoc signs). Fix any build errors and repeat.
+- SHOULD run the relevant end-to-end test, e.g. `./scripts/test-ui.sh` or
+  `./scripts/test-settings.sh`. Fix any failures and repeat.
 
-## If you outgrow this
+After making major changes, SHOULD run the full UI test suite:
+`for f in scripts/test-*.sh; do $f || break; done`. Fix any failures and repeat.
 
-If Xcode ever gets installed here, XCUITest remains the better long-term
-choice (native assertions, `.xcresult` reports, CI integration, code
-coverage) — see the "Full XCUITest" option considered and rejected for
-this environment. It would slot in alongside `axdrive`, not replace the
-`accessibilityIdentifier` work above, which both approaches share.
+There is no linter/formatter configured in this repo.
+
+## Commands
+
+- `swift build` — alternate build via SwiftPM, for full-Xcode toolchains
+  only (the CLT-only SwiftPM linker is broken here; `build.sh` is the
+  supported path in this environment)
+- `open LookAround.app` — launch the built app
+- `./scripts/package-dmg.sh` — build a release DMG (stamps the version
+  into `Info.plist` from a git tag)
+- `./scripts/bump-cask.sh`, `./scripts/test-cask.sh` — Homebrew Cask maintenance
+
+## Architecture
+
+- `Sources/LookAround/LookAroundApp.swift` — `@main` App entry, MenuBarExtra/Settings scenes, AppDelegate
+- `Sources/LookAround/Models.swift` — break/office-hours/planned/smart-pause/wellness/appearance/automation/stats types
+- `Sources/LookAround/SettingsStore.swift` — `ObservableObject` settings + JSON persistence
+- `Sources/LookAround/BreakScheduler.swift` — the core timer state machine
+- `Sources/LookAround/ActivityProbe.swift`, `SmartPause.swift` — idle/fullscreen detection and pause-rule evaluation (permission-free)
+- `Sources/LookAround/WindowManager.swift`, `BreakViews.swift` — break overlay, pre-break and floating-countdown windows/views
+- `Sources/LookAround/MenuBarView.swift`, `SettingsView.swift`, `SettingsPages.swift`, `SettingsPages2.swift` — menu-bar dropdown and tabbed settings UI
+- `Sources/LookAround/Theme.swift` — AppTheme / Liquid Glass styling
+- `tools/axdrive/` — Accessibility-API driver used for UI testing (no Xcode, so no XCUITest)
+- `scripts/test-*.sh` — end-to-end UI test suites driven by `axdrive`
+- `packaging/homebrew/` — Homebrew Cask source; `.github/workflows/release.yml` builds and publishes the DMG on `v*` tags
+
+## Workflows
+
+### Agent-driven UI testing (no Xcode/XCUITest)
+
+Apply whenever you modify UI behavior: how to add accessibility
+identifiers, how to launch/write/run the `axdrive`-based test scripts,
+and known `axdrive` quirks.
+Read `./docs/ui-testing.md`.
+
+## Development Guidelines
+
+- **Style**: Prefer self-documenting code over comments; comments should explain intent.
+- **Git**: Read-only operations allowed. Use `git grep` and `git ls-files` for searching.
+- Give every interactive view a stable `.accessibilityIdentifier("…")`
+  (convention: `area.control`) — never select by screen coordinates in
+  tests. See `docs/ui-testing.md` for the full convention and pitfalls.
+- Never leave a stray `LookAround` process running after a test — every
+  test script should `axdrive terminate` at both start and end.
+
+### Forbidden Patterns
+
+- Don't put `.accessibilityIdentifier` on a custom View struct's root
+  (a page body, an overlay `ZStack`, …) — it shadows all descendants'
+  identifiers. Tag leaf controls instead.
+- Don't invoke `xcodebuild`/XCUITest — this environment has no Xcode.
