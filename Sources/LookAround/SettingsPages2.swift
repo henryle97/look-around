@@ -820,6 +820,9 @@ struct AutomationEditor: View {
 // ---------- About ----------
 
 struct AboutPage: View {
+    @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject var updateChecker: UpdateChecker
+
     var body: some View {
         PageHeader(icon: "info.circle.fill", title: "About", color: .laYellow)
         Card {
@@ -834,7 +837,7 @@ struct AboutPage: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("LookAround").font(.system(size: 20, weight: .bold)).foregroundColor(.laPrimaryText)
-                    Text("Version 0.1.0").font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
+                    Text("Version \(UpdateChecker.currentVersion)").font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                         .accessibilityIdentifier("settings.about.version")
                     Text("A smart break reminder for your Mac.")
                         .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
@@ -842,6 +845,8 @@ struct AboutPage: View {
                 Spacer()
             }
             .padding(.vertical, 10)
+            CardDivider()
+            updatesRow
         }
         Card {
             Text("LookAround is a break reminder for your Mac. Take regular breaks to reduce eye strain.")
@@ -854,5 +859,44 @@ struct AboutPage: View {
             }
             .padding(.bottom, 8)
         }
+    }
+
+    @ViewBuilder private var updatesRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(updateStatusText)
+                    .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.7))
+                    .accessibilityIdentifier("settings.about.updateStatus")
+                Spacer()
+                Button(updateChecker.isChecking ? "Checking…" : "Check for Updates") {
+                    Task { await updateChecker.checkNow(settings: settings) }
+                }
+                .buttonStyle(.bordered).controlSize(.small)
+                .disabled(updateChecker.isChecking)
+                .accessibilityIdentifier("settings.about.checkForUpdatesButton")
+            }
+            if updateChecker.isUpdateAvailable(settings: settings), let release = updateChecker.latestRelease {
+                HStack {
+                    Button("Download v\(release.version)") { NSWorkspace.shared.open(release.url) }
+                        .buttonStyle(.borderedProminent).controlSize(.small)
+                        .accessibilityIdentifier("settings.about.downloadUpdateButton")
+                    Button("Skip this version") { settings.updates.skippedVersion = release.version }
+                        .buttonStyle(.bordered).controlSize(.small)
+                        .accessibilityIdentifier("settings.about.skipVersionButton")
+                }
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    private var updateStatusText: String {
+        if let e = updateChecker.lastError { return e }
+        if let release = updateChecker.latestRelease {
+            if updateChecker.isUpdateAvailable(settings: settings) {
+                return "Version \(release.version) is available."
+            }
+            return "You're up to date."
+        }
+        return "Last checked: never"
     }
 }

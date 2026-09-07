@@ -32,6 +32,7 @@ struct LookAroundApp: App {
         let s = SettingsStore()
         Shared.settings = s
         Shared.scheduler = BreakScheduler(settings: s)
+        Shared.updateChecker = UpdateChecker()
         // NOTE: no NSApp access here — it is nil during App struct init.
         // Dock-less menu-bar behavior comes from LSUIElement in Info.plist,
         // enforced again in AppDelegate on launch.
@@ -50,6 +51,7 @@ struct LookAroundApp: App {
 enum Shared {
     static var settings: SettingsStore!
     static var scheduler: BreakScheduler!
+    static var updateChecker: UpdateChecker!
 }
 
 /// Compact menu-bar label: eye icon + live countdown.
@@ -160,7 +162,8 @@ final class StatusBarController: NSObject {
         popover.contentViewController = NSHostingController(
             rootView: MenuBarView()
                 .environmentObject(scheduler)
-                .environmentObject(settings))
+                .environmentObject(settings)
+                .environmentObject(Shared.updateChecker))
         popover.behavior = .transient
 
         // Icon swaps (eye/pause/cup) change the label width — track it.
@@ -193,5 +196,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Dock-less menu-bar utility app, like the original.
         NSApp.setActivationPolicy(.accessory)
         bar.setup(scheduler: Shared.scheduler, settings: Shared.settings)
+        // UI tests stub out network access with --reset-state/--ui-testing
+        // runs that don't need real update checks; skip hitting GitHub then.
+        if !UITesting.isEnabled {
+            Shared.updateChecker.start(settings: Shared.settings)
+        }
     }
 }

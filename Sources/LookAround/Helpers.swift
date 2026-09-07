@@ -61,3 +61,32 @@ enum TimeFmt {
         return "\(s)s"
     }
 }
+
+enum AppVersion {
+    /// Compares two dotted version strings ("1.2.3", a leading "v" allowed).
+    /// Missing/non-numeric components count as 0, so "1.2" == "1.2.0" and
+    /// "1.2.3-beta" compares as "1.2.3". Returns -1/0/1 like `Comparable`.
+    static func compare(_ a: String, _ b: String) -> Int {
+        let lhs = components(a), rhs = components(b)
+        for i in 0..<max(lhs.count, rhs.count) {
+            let l = i < lhs.count ? lhs[i] : 0
+            let r = i < rhs.count ? rhs[i] : 0
+            if l != r { return l < r ? -1 : 1 }
+        }
+        return 0
+    }
+
+    static func isNewer(_ candidate: String, than current: String) -> Bool {
+        compare(candidate, current) > 0
+    }
+
+    private static func components(_ version: String) -> [Int] {
+        var v = version
+        if v.hasPrefix("v") { v.removeFirst() }
+        // Stop at the first non-numeric-dotted suffix (e.g. "-beta.1").
+        if let dash = v.firstIndex(where: { $0 == "-" || $0 == "+" }) {
+            v = String(v[v.startIndex..<dash])
+        }
+        return v.split(separator: ".").map { Int($0) ?? 0 }
+    }
+}

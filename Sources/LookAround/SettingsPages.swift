@@ -8,6 +8,7 @@ import AppKit
 
 struct GeneralPage: View {
     @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject var updateChecker: UpdateChecker
     @State private var launchAtLogin = false
     @State private var launchError: String? = nil
     var body: some View {
@@ -61,8 +62,14 @@ struct GeneralPage: View {
             }
             .padding(.vertical, 10)
             CardDivider()
+            SettingRow(label: "Automatically check for updates") {
+                Toggle("", isOn: $settings.updates.autoCheckEnabled)
+                    .labelsHidden()
+                    .accessibilityIdentifier("settings.general.autoCheckUpdates")
+            }
+            CardDivider()
             SettingRow(label: "Version") {
-                Text("0.1.0").foregroundColor(.laPrimaryText.opacity(0.55))
+                Text(UpdateChecker.currentVersion).foregroundColor(.laPrimaryText.opacity(0.55))
             }
             if let e = launchError {
                 Text(e).font(.caption).foregroundColor(.orange)

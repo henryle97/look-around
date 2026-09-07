@@ -14,6 +14,7 @@ final class SettingsStore: ObservableObject {
     @Published var appearance = AppearanceSettings()
     @Published var automations: [AutomationScript] = []
     @Published var stats = BreakStats()
+    @Published var updates = UpdateSettings()
     @Published var isPaused: Bool = false
     @Published var pauseUntil: Date? = nil
 
@@ -35,7 +36,8 @@ final class SettingsStore: ObservableObject {
             $wellness.map { _ in () }.eraseToAnyPublisher(),
             $appearance.map { _ in () }.eraseToAnyPublisher(),
             $automations.map { _ in () }.eraseToAnyPublisher(),
-            $stats.map { _ in () }.eraseToAnyPublisher()
+            $stats.map { _ in () }.eraseToAnyPublisher(),
+            $updates.map { _ in () }.eraseToAnyPublisher()
         )
         .debounce(for: .milliseconds(400), scheduler: RunLoop.main)
         .sink { [weak self] in self?.save() }
@@ -52,12 +54,17 @@ final class SettingsStore: ObservableObject {
         var appearance: AppearanceSettings
         var automations: [AutomationScript]
         var stats: BreakStats
+        // Optional (not defaulted): a synthesized Decodable only tolerates a
+        // missing key for an Optional property, so old snapshots persisted
+        // before this field existed still decode instead of failing outright
+        // and silently resetting every other setting to defaults.
+        var updates: UpdateSettings?
     }
 
     func save() {
         let snap = Snapshot(breaks: breaks, officeHours: officeHours, plannedBreaks: plannedBreaks,
                             smartPause: smartPause, wellness: wellness, appearance: appearance,
-                            automations: automations, stats: stats)
+                            automations: automations, stats: stats, updates: updates)
         if let data = try? JSONEncoder().encode(snap) {
             UserDefaults.standard.set(data, forKey: key)
         }
@@ -74,6 +81,7 @@ final class SettingsStore: ObservableObject {
         appearance = snap.appearance
         automations = snap.automations
         stats = snap.stats
+        updates = snap.updates ?? UpdateSettings()
     }
 
     func resetAll() {
@@ -85,6 +93,7 @@ final class SettingsStore: ObservableObject {
         appearance = AppearanceSettings()
         automations = []
         stats = BreakStats()
+        updates = UpdateSettings()
         plannedBreaks = []
     }
 }

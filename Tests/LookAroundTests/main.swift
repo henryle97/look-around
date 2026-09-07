@@ -10,6 +10,7 @@ registerSmartPauseTests(runner)
 registerTimeFmtTests(runner)
 registerAppearanceSettingsTests(runner)
 registerSettingsStoreTests(runner)
+registerAppVersionTests(runner)
 registerPromptPickerTests(runner)
 
 exit(runner.finish())

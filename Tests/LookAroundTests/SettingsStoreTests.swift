@@ -46,6 +46,28 @@ func registerSettingsStoreTests(_ r: TestRunner) {
         }
     }
 
+    r.run("SettingsStore: loads an old snapshot saved before 'updates' existed") {
+        try withCleanDefaults {
+            let store = SettingsStore()
+            store.breaks.workDuration = 45 * 60
+            store.updates.autoCheckEnabled = false
+            store.save()
+
+            // Simulate a pre-update-checker persisted blob by stripping the
+            // "updates" key back out of what was just saved.
+            let data = try expectNotNil(UserDefaults.standard.data(forKey: SettingsStore.persistenceKey))
+            let parsed = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            var obj = try expectNotNil(parsed)
+            obj.removeValue(forKey: "updates")
+            let stripped = try JSONSerialization.data(withJSONObject: obj)
+            UserDefaults.standard.set(stripped, forKey: SettingsStore.persistenceKey)
+
+            let reloaded = SettingsStore()
+            try expectEqual(reloaded.breaks.workDuration, 45 * 60)
+            try expectTrue(reloaded.updates.autoCheckEnabled) // falls back to UpdateSettings()'s default
+        }
+    }
+
     r.run("SettingsStore: resetAll() clears persistence and restores defaults") {
         try withCleanDefaults {
             let store = SettingsStore()
