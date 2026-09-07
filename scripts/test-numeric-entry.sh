@@ -89,7 +89,7 @@ open_screen_breaks || exit 1
 
 log "default work-duration H/M…"
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.workHours.value)" "0" "default work hours"
-assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.workMinutes.value)" "20" "default work minutes"
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.workMinutes.value)" "10" "default work minutes"
 
 log "typing into the work-duration H/M boxes…"
 type_and_verify settings.screenBreaks.workMinutes.value 45 "45" "work minutes after typing 45"
@@ -129,7 +129,7 @@ assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.breakDuration.value)"
 log "relaunching with --reset-state to confirm it wipes typed values…"
 launch_app --ui-testing --reset-state
 open_screen_breaks || exit 1
-assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.workMinutes.value)" "20" "work minutes reset to default"
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.workMinutes.value)" "10" "work minutes reset to default"
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.breakDuration.value)" "20 seconds" "break duration reset to default"
 
 "$AX" terminate "$BUNDLE_ID" >/dev/null 2>&1

@@ -101,7 +101,7 @@ struct BreakPresetDef: Identifiable {
     let short: TimeInterval
 }
 private let breakPresets = [
-    BreakPresetDef(name: "Balanced", work: 20*60, short: 20),
+    BreakPresetDef(name: "Balanced", work: 10*60, short: 20),
     BreakPresetDef(name: "Deep Focus", work: 45*60, short: 30),
     BreakPresetDef(name: "Eye Care", work: 15*60, short: 15),
     BreakPresetDef(name: "Wellness", work: 25*60, short: 45),
@@ -498,36 +498,53 @@ struct CustomMessagesPage: View {
         Card {
             SettingRow(label: "Enable custom messages for short breaks") {
                 Toggle("", isOn: $settings.appearance.shortMessagesEnabled).labelsHidden()
+                    .accessibilityIdentifier("settings.customMessages.short.enabled")
             }
         }
-        messageList($settings.appearance.shortMessages)
+        messageList($settings.appearance.shortMessages, axPrefix: "settings.customMessages.short")
         SectionTitle("Long breaks")
         Card {
             SettingRow(label: "Enable custom messages for long breaks") {
                 Toggle("", isOn: $settings.appearance.longMessagesEnabled).labelsHidden()
+                    .accessibilityIdentifier("settings.customMessages.long.enabled")
             }
         }
-        messageList($settings.appearance.longMessages)
+        messageList($settings.appearance.longMessages, axPrefix: "settings.customMessages.long")
     }
 
-    private func messageList(_ messages: Binding<[String]>) -> some View {
+    private func messageList(_ messages: Binding<[BreakPrompt]>, axPrefix: String) -> some View {
         Card {
             ForEach(messages.indices, id: \.self) { i in
                 if i > 0 { CardDivider() }
-                TextField("Message", text: messages[i])
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 15))
-                    .padding(.vertical, 8)
+                HStack(spacing: 10) {
+                    TextField("Message", text: messages[i].text)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 15))
+                        .accessibilityIdentifier("\(axPrefix).row.\(i).text")
+                    Menu(messages[i].wrappedValue.category.label) {
+                        ForEach(PromptCategory.allCases) { cat in
+                            Button(cat.label) { messages[i].wrappedValue.category = cat }
+                        }
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .accessibilityIdentifier("\(axPrefix).row.\(i).category")
+                }
+                .padding(.vertical, 8)
             }
             HStack {
-                Button { messages.wrappedValue.append("") } label: {
+                Button {
+                    messages.wrappedValue.append(BreakPrompt(id: UUID().uuidString, category: .custom, text: "", weight: 1))
+                } label: {
                     Image(systemName: "plus").frame(width: 30, height: 30)
                         .background(Color.laPrimaryText.opacity(0.08), in: Circle())
                 }.buttonStyle(.plain)
+                 .accessibilityIdentifier("\(axPrefix).addButton")
                 Button { _ = messages.wrappedValue.popLast() } label: {
                     Image(systemName: "minus").frame(width: 30, height: 30)
                         .background(Color.laPrimaryText.opacity(0.08), in: Circle())
                 }.buttonStyle(.plain)
+                 .accessibilityIdentifier("\(axPrefix).removeButton")
                 Spacer()
                 Text("A random message from this list is shown")
                     .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.45))

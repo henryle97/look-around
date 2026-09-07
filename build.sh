@@ -27,6 +27,7 @@ swiftc -target arm64-apple-macosx13.0 \
 echo "→ bundling…"
 cp Sources/LookAround/Resources/Info.plist "$APP/Contents/Info.plist"
 cp Sources/LookAround/Resources/*.icns "$APP/Contents/Resources/" 2>/dev/null || true
+cp Sources/LookAround/Resources/BreakPrompts.json "$APP/Contents/Resources/BreakPrompts.json"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 # Ad-hoc sign so the .app launches on Apple Silicon via Finder.

@@ -66,6 +66,10 @@ final class BreakScheduler: ObservableObject {
     private var blinkNextAt: Date
     private var idleEpisodeCounted = false
     private var idleResetDone = false
+    private var recentShortPromptIDs: [String] = []
+    private var recentLongPromptIDs: [String] = []
+    private var lastShortCategory: PromptCategory? = nil
+    private var lastLongCategory: PromptCategory? = nil
 
     init(settings: SettingsStore) {
         self.settings = settings
@@ -423,6 +427,26 @@ final class BreakScheduler: ObservableObject {
         return .short
     }
 
+    /// Picks the next break-screen prompt for `kind`, tracking a short
+    /// recent-history per pool (short/long breaks draw from separate pools,
+    /// so their histories don't interfere) — see `PromptPicker`.
+    private func pickPrompt(for kind: BreakKind, from pool: [BreakPrompt]) -> BreakPrompt? {
+        let isLong = kind == .long
+        let recent = isLong ? recentLongPromptIDs : recentShortPromptIDs
+        let lastCategory = isLong ? lastLongCategory : lastShortCategory
+        guard let prompt = PromptPicker.pick(from: pool, recentIDs: recent, lastCategory: lastCategory) else { return nil }
+        if isLong {
+            lastLongCategory = prompt.category
+            recentLongPromptIDs.append(prompt.id)
+            if recentLongPromptIDs.count > 6 { recentLongPromptIDs.removeFirst() }
+        } else {
+            lastShortCategory = prompt.category
+            recentShortPromptIDs.append(prompt.id)
+            if recentShortPromptIDs.count > 6 { recentShortPromptIDs.removeFirst() }
+        }
+        return prompt
+    }
+
     private func beginBreak(kind: BreakKind, planned: PlannedBreak? = nil) {
         let b = settings.breaks
         rollDayIfNeeded()
@@ -443,7 +467,7 @@ final class BreakScheduler: ObservableObject {
             duration = planned?.duration ?? 5*60
             subtitle = "Step away and recharge until the countdown is over"
         }
-        let pool: [String]
+        let pool: [BreakPrompt]
         let poolEnabled: Bool
         switch kind {
         case .long:
@@ -456,8 +480,8 @@ final class BreakScheduler: ObservableObject {
         let title: String
         if kind == .planned, let p = planned {
             title = p.name
-        } else if poolEnabled, let m = pool.randomElement() {
-            title = m
+        } else if poolEnabled, let prompt = pickPrompt(for: kind, from: pool) {
+            title = prompt.displayText
         } else {
             title = kind == .long ? "Time for a long break" : "Time for a quick break"
         }
