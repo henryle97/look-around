@@ -124,7 +124,7 @@ struct ScreenBreaksPage: View {
             CardDivider()
             SettingRow(label: "Break duration") {
                 ChipStepper(value: $settings.breaks.shortBreakDuration, range: 5...600, step: 5,
-                            id: "settings.screenBreaks.breakDuration") {
+                            id: "settings.screenBreaks.breakDuration", isDurationSeconds: true) {
                     formatBreakDuration($0)
                 }
             }
@@ -223,14 +223,9 @@ struct ScreenBreaksPage: View {
     }
 
     private func hmBox(_ unit: String, hours: Binding<Int>) -> some View {
-        HStack(spacing: 4) {
-            Text("\(hours.wrappedValue)").font(.system(size: 14, weight: .medium)).foregroundColor(.laPrimaryText)
-                .frame(minWidth: 22)
-            Text(unit).font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.5))
-            Stepper("", value: hours, in: 0...(unit == "H" ? 8 : 59)).labelsHidden()
-        }
-        .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(Color.laPrimaryText.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
+        EditableHMBox(value: hours, unit: unit,
+                      range: 0...(unit == "H" ? 8 : 59),
+                      id: "settings.screenBreaks.work\(unit == "H" ? "Hours" : "Minutes")")
     }
 
     private var longSummary: String {
@@ -334,7 +329,7 @@ struct LongBreaksPage: View {
                 CardDivider()
                 SettingRow(label: "Long break length") {
                     ChipStepper(value: $settings.breaks.longBreakDuration, range: 60...3600, step: 60,
-                                id: "settings.longBreaks.duration") {
+                                id: "settings.longBreaks.duration", isDurationSeconds: true) {
                         "\(Int($0 / 60)) mins"
                     }
                 }

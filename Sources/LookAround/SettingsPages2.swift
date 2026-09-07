@@ -142,7 +142,7 @@ struct SmartPausePage: View {
             SettingRow(label: "Cooldown after smart pause ends") {
                 ChipStepper(value: $settings.smartPause.cooldownAfterActivity,
                             range: 0...1800, step: 60,
-                            id: "settings.smartPause.cooldown") {
+                            id: "settings.smartPause.cooldown", isDurationSeconds: true) {
                     $0 < 60 ? "\($0)s" : (Int($0) / 60 == 1 ? "1 minute" : "\(Int($0) / 60) minutes")
                 }
             }
@@ -218,7 +218,7 @@ struct WellnessPage: View {
                 SettingRow(label: "Remind me every") {
                     ChipStepper(value: $settings.wellness.postureInterval,
                                 range: 5*60...120*60, step: 5*60,
-                                id: "settings.wellness.postureInterval") {
+                                id: "settings.wellness.postureInterval", isDurationSeconds: true) {
                         "\(Int($0 / 60)) min"
                     }
                 }
@@ -241,7 +241,7 @@ struct WellnessPage: View {
                 SettingRow(label: "Remind me every") {
                     ChipStepper(value: $settings.wellness.blinkInterval,
                                 range: 2*60...60*60, step: 60,
-                                id: "settings.wellness.blinkInterval") {
+                                id: "settings.wellness.blinkInterval", isDurationSeconds: true) {
                         "\(Int($0 / 60)) min"
                     }
                 }
@@ -371,7 +371,7 @@ struct AlertsPage: View {
                 Text("Show reminder").foregroundColor(.laPrimaryText)
                 Spacer()
                 ChipStepper(value: $settings.breaks.preBreakLeadTime, range: 15...600, step: 15,
-                            id: "settings.alerts.preBreakLeadTime") {
+                            id: "settings.alerts.preBreakLeadTime", isDurationSeconds: true) {
                     $0 < 60 ? "\($0)s" : (Int($0) / 60 == 1 ? "1 minute" : "\(Int($0) / 60) minutes")
                 }
                 Text("before the break starts").foregroundColor(.laPrimaryText.opacity(0.7))
@@ -380,7 +380,7 @@ struct AlertsPage: View {
             CardDivider()
             SettingRow(label: "Keep the reminder visible for") {
                 ChipStepper(value: $settings.breaks.preBreakVisibleFor, range: 1...60, step: 1,
-                            id: "settings.alerts.preBreakVisibleFor") {
+                            id: "settings.alerts.preBreakVisibleFor", isDurationSeconds: true) {
                     Int($0) == 1 ? "1 second" : "\(Int($0)) seconds"
                 }
             }
@@ -466,7 +466,7 @@ struct AlertsPage: View {
             }
             SettingRow(label: "Countdown duration") {
                 ChipStepper(value: $settings.breaks.countdownDuration, range: 1...30, step: 1,
-                            id: "settings.alerts.countdownDuration") {
+                            id: "settings.alerts.countdownDuration", isDurationSeconds: true) {
                     Int($0) == 1 ? "1 second" : "\(Int($0)) seconds"
                 }
             }

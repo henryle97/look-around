@@ -45,6 +45,15 @@ func axValueDescription(_ element: AXUIElement) -> String {
     if let s = axAttr(element, kAXValueAttribute) as? String { return s }
     if let n = axAttr(element, kAXValueAttribute) as? NSNumber { return n.stringValue }
     if let s = axAttr(element, kAXTitleAttribute) as? String { return s }
+    // A Text view that also carries an .accessibilityAction (used for
+    // click-to-edit chips, see SettingsView.ChipStepper) gets promoted to
+    // AXButton by the SwiftUI/AX bridge, which moves its label out of
+    // AXValue/AXTitle into AXAttributedDescription (an NSAttributedString)
+    // instead — plain AXDescription is never populated in that case.
+    if let attributed = axAttr(element, "AXAttributedDescription") as? NSAttributedString {
+        return attributed.string
+    }
+    if let s = axAttr(element, kAXDescriptionAttribute) as? String { return s }
     return ""
 }
 
@@ -161,6 +170,17 @@ func cmdFind(_ args: [String]) {
     print("role=\(role) enabled=\(enabled) value=\(axValueDescription(el))")
 }
 
+func cmdAttrs(_ args: [String]) {
+    guard args.count >= 2 else { fail("usage: axdrive attrs <bundle-id> <identifier>") }
+    guard let el = findInApp(bundleID: args[0], identifier: args[1]) else { fail("not found") }
+    var names: CFArray?
+    AXUIElementCopyAttributeNames(el, &names)
+    for name in (names as? [String]) ?? [] {
+        let v = axAttr(el, name)
+        print("\(name) = \(String(describing: v))")
+    }
+}
+
 func cmdClick(_ args: [String]) {
     guard args.count >= 2 else { fail("usage: axdrive click <bundle-id> <identifier>") }
     // Retry the lookup briefly: the tree can be mid-mutation (a window
@@ -185,6 +205,57 @@ func cmdStep(_ args: [String], action: String) {
         let err = AXUIElementPerformAction(el, axAction as CFString)
         guard err == .success else { fail("\(action) failed: \(err.rawValue)") }
     }
+    print("ok")
+}
+
+/// Virtual keycodes for digits 0-9 and Return (US layout, position-based —
+/// fine here since we only ever type digits).
+private let digitKeyCodes: [Character: CGKeyCode] = [
+    "0": 0x1D, "1": 0x12, "2": 0x13, "3": 0x14, "4": 0x15,
+    "5": 0x17, "6": 0x16, "7": 0x1A, "8": 0x1C, "9": 0x19,
+]
+private let returnKeyCode: CGKeyCode = 0x24
+private let deleteKeyCode: CGKeyCode = 0x33
+private let escapeKeyCode: CGKeyCode = 0x35
+
+private func postKey(_ code: CGKeyCode, source: CGEventSource?) {
+    CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: true)?.post(tap: .cghidEventTap)
+    CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false)?.post(tap: .cghidEventTap)
+    Thread.sleep(forTimeInterval: 0.03)
+}
+
+/// Types digits into whatever text field currently has keyboard focus, via
+/// synthetic keystrokes (not AXValue — SwiftUI's TextField binding doesn't
+/// reliably observe a direct AXUIElementSetAttributeValue). Click the field
+/// first (see `click`) so it's focused before calling this.
+///   type <bundle-id> <digits> [--enter] [--escape] [--clear=N]
+/// `--clear=N` backspaces N characters first (to replace existing content).
+/// `--escape` sends Escape instead of typing (pass "" for <digits>).
+func cmdType(_ args: [String]) {
+    guard args.count >= 2 else { fail("usage: axdrive type <bundle-id> <digits> [--enter] [--escape] [--clear=N]") }
+    let bundleID = args[0]
+    let digits = args[1]
+    guard let app = runningApp(bundleID: bundleID) else { fail("axdrive: no running app with bundle id \(bundleID)") }
+    for ch in digits {
+        guard ch.isNumber else { fail("axdrive: type only supports digits, got '\(ch)'") }
+    }
+    // Synthetic key events go to whatever has OS-level key focus, unlike
+    // AXUIElementPerformAction (used by `click`) which acts on the element
+    // directly — so the target app must actually be frontmost first.
+    app.activate(options: [])
+    Thread.sleep(forTimeInterval: 0.15)
+    let src = CGEventSource(stateID: .hidSystemState)
+    for arg in args.dropFirst(2) {
+        if arg.hasPrefix("--clear="), let n = Int(arg.dropFirst("--clear=".count)) {
+            for _ in 0..<n { postKey(deleteKeyCode, source: src) }
+        }
+    }
+    for ch in digits {
+        guard let code = digitKeyCodes[ch] else { continue }
+        postKey(code, source: src)
+    }
+    if args.contains("--enter") { postKey(returnKeyCode, source: src) }
+    if args.contains("--escape") { postKey(escapeKeyCode, source: src) }
     print("ok")
 }
 
@@ -296,9 +367,11 @@ guard let command = argv.first else {
       terminate <bundle-id>
       menu-click <bundle-id>
       find <bundle-id> <identifier>
+      attrs <bundle-id> <identifier>
       click <bundle-id> <identifier>
       increment <bundle-id> <identifier> [count]
       decrement <bundle-id> <identifier> [count]
+      type <bundle-id> <digits> [--enter] [--escape] [--clear=N]
       read <bundle-id> <identifier>
       tree <bundle-id>
       shot-window <bundle-id> <title-substring> <out.png>
@@ -311,9 +384,11 @@ case "launch": cmdLaunch(rest)
 case "terminate": cmdTerminate(rest)
 case "menu-click": cmdMenuClick(rest)
 case "find": cmdFind(rest)
+case "attrs": cmdAttrs(rest)
 case "click": cmdClick(rest)
 case "increment": cmdStep(rest, action: "increment")
 case "decrement": cmdStep(rest, action: "decrement")
+case "type": cmdType(rest)
 case "read": cmdRead(rest)
 case "tree": cmdTree(rest)
 case "shot-window": cmdShotWindow(rest)
