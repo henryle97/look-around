@@ -17,7 +17,11 @@ final class SettingsStore: ObservableObject {
     @Published var isPaused: Bool = false
     @Published var pauseUntil: Date? = nil
 
-    private let key = "lookaround.settings.v2"
+    /// UserDefaults key for the persisted settings snapshot. Exposed so the
+    /// `--reset-state` dev-mode switch (see `LookAroundApp.init`) can clear
+    /// it before a `SettingsStore` is ever constructed.
+    static let persistenceKey = "lookaround.settings.v2"
+    private let key = SettingsStore.persistenceKey
     private var bag = Set<AnyCancellable>()
 
     init() {

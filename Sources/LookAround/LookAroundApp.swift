@@ -1,6 +1,27 @@
 import SwiftUI
 import AppKit
 
+/// Dev/test-mode switches for agent-driven UI testing (see AGENTS.md).
+/// Checked once at launch, before any state is loaded — never compiled out,
+/// so a Release build can still be exercised deterministically by a driver.
+enum UITesting {
+    /// `--ui-testing` launch argument or `LOOKAROUND_UI_TESTING=1` env var.
+    static let isEnabled: Bool = {
+        ProcessInfo.processInfo.arguments.contains("--ui-testing")
+            || ProcessInfo.processInfo.environment["LOOKAROUND_UI_TESTING"] == "1"
+    }()
+
+    /// `--reset-state` launch argument: wipes persisted settings before
+    /// `SettingsStore` loads, so every launch starts from known defaults.
+    static let shouldResetState: Bool =
+        ProcessInfo.processInfo.arguments.contains("--reset-state")
+
+    static func resetStateIfRequested() {
+        guard shouldResetState else { return }
+        UserDefaults.standard.removeObject(forKey: SettingsStore.persistenceKey)
+    }
+}
+
 @main
 struct LookAroundApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -8,6 +29,7 @@ struct LookAroundApp: App {
     @StateObject private var scheduler: BreakScheduler
 
     init() {
+        UITesting.resetStateIfRequested()
         let s = SettingsStore()
         _settings = StateObject(wrappedValue: s)
         _scheduler = StateObject(wrappedValue: BreakScheduler(settings: s))

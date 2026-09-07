@@ -31,6 +31,7 @@ struct MenuBarView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Open Settings")
+                .accessibilityIdentifier("menubar.settingsButton")
             }
 
             if tab == .now { nowTab } else { statsTab }
@@ -83,6 +84,7 @@ struct MenuBarView: View {
                 .foregroundColor(.white.opacity(0.5))
             Button("Quit LookAround") { NSApp.terminate(nil) }
                 .font(.caption)
+                .accessibilityIdentifier("menubar.quitButton")
         }
         .buttonStyle(.bordered)
         .tint(.white)

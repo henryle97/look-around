@@ -77,6 +77,7 @@ struct ScreenBreaksPage: View {
                 Text(presetName).font(.system(size: 14)).foregroundColor(.white.opacity(0.8))
                 Stepper("", value: presetIndex, in: 0...(breakPresets.count - 1))
                     .labelsHidden()
+                    .accessibilityIdentifier("settings.screenBreaks.workIntervalPreset")
                 hmBox("H", hours: workHoursBinding)
                 hmBox("M", hours: workMinutesBinding)
                 Text("of focused screen time").font(.system(size: 14)).foregroundColor(.white.opacity(0.8))
@@ -84,7 +85,8 @@ struct ScreenBreaksPage: View {
             .padding(.vertical, 10)
             CardDivider()
             SettingRow(label: "Break duration") {
-                ChipStepper(value: $settings.breaks.shortBreakDuration, range: 5...600, step: 5) {
+                ChipStepper(value: $settings.breaks.shortBreakDuration, range: 5...600, step: 5,
+                            id: "settings.screenBreaks.breakDuration") {
                     formatBreakDuration($0)
                 }
             }
@@ -116,7 +118,8 @@ struct ScreenBreaksPage: View {
             .padding(.vertical, 12)
             CardDivider()
             SettingRow(label: "Snoozes allowed per day") {
-                ChipStepper(value: $settings.breaks.snoozesPerDay, range: 0...20, step: 1) { "\($0)" }
+                ChipStepper(value: $settings.breaks.snoozesPerDay, range: 0...20, step: 1,
+                            id: "settings.screenBreaks.snoozesPerDay") { "\($0)" }
             }
         }
         SectionTitle("More")
@@ -280,13 +283,15 @@ struct LongBreaksPage: View {
             if settings.breaks.longBreakEnabled {
                 CardDivider()
                 SettingRow(label: "A long break every") {
-                    ChipStepper(value: $settings.breaks.longBreakEvery, range: 2...10, step: 1) {
+                    ChipStepper(value: $settings.breaks.longBreakEvery, range: 2...10, step: 1,
+                                id: "settings.longBreaks.every") {
                         "\(ordinal($0)) break"
                     }
                 }
                 CardDivider()
                 SettingRow(label: "Long break length") {
-                    ChipStepper(value: $settings.breaks.longBreakDuration, range: 60...3600, step: 60) {
+                    ChipStepper(value: $settings.breaks.longBreakDuration, range: 60...3600, step: 60,
+                                id: "settings.longBreaks.duration") {
                         "\(Int($0 / 60)) mins"
                     }
                 }
@@ -516,11 +521,13 @@ struct EditPlannedPage: View {
             }
             CardDivider()
             SettingRow(label: "Starts at") {
-                ChipStepper(value: startMinutes, range: 0...1435, step: 5) { hhmm($0) }
+                ChipStepper(value: startMinutes, range: 0...1435, step: 5,
+                            id: "settings.plannedBreak.startTime") { hhmm($0) }
             }
             CardDivider()
             SettingRow(label: "Duration") {
-                ChipStepper(value: durationMinutes, range: 1...120, step: 1) {
+                ChipStepper(value: durationMinutes, range: 1...120, step: 1,
+                            id: "settings.plannedBreak.duration") {
                     $0 == 60 ? "1 hour" : ($0 < 60 ? "\($0) min" : "\(Int($0 / 60))h \($0 % 60)m")
                 }
             }
