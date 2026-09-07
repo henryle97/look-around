@@ -29,6 +29,14 @@ func registerAppearanceSettingsTests(_ r: TestRunner) {
         try expectEqual(decoded.gradientIndex, 2)
         try expectEqual(decoded.soundName, .rain)
         try expectFalse(decoded.shortMessagesEnabled)
+        // Personalize fields (backgroundMode, blur, per-event sound toggles,
+        // custom sound paths) postdate this snapshot too — same fallback story.
+        try expectEqual(decoded.backgroundMode, .wallpaper)
+        try expectTrue(decoded.backgroundBlurEnabled)
+        try expectTrue(decoded.soundOnStart)
+        try expectTrue(decoded.soundOnEnd)
+        try expectEqual(decoded.customStartSoundPath, "")
+        try expectEqual(decoded.customEndSoundPath, "")
     }
 
     r.run("AppearanceSettings: encode/decode round-trips every field") {
@@ -38,6 +46,12 @@ func registerAppearanceSettingsTests(_ r: TestRunner) {
         original.appTheme = .dark
         original.breakMaterial = .liquidGlass
         original.shortMessagesEnabled = false
+        original.backgroundMode = .customImage
+        original.backgroundBlurEnabled = false
+        original.soundOnStart = false
+        original.soundOnEnd = true
+        original.customStartSoundPath = "/Users/test/start.mp3"
+        original.customEndSoundPath = "/Users/test/end.wav"
 
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(AppearanceSettings.self, from: data)
@@ -49,5 +63,11 @@ func registerAppearanceSettingsTests(_ r: TestRunner) {
         try expectEqual(decoded.shortMessagesEnabled, original.shortMessagesEnabled)
         try expectEqual(decoded.shortMessages, original.shortMessages)
         try expectEqual(decoded.longMessages, original.longMessages)
+        try expectEqual(decoded.backgroundMode, original.backgroundMode)
+        try expectEqual(decoded.backgroundBlurEnabled, original.backgroundBlurEnabled)
+        try expectEqual(decoded.soundOnStart, original.soundOnStart)
+        try expectEqual(decoded.soundOnEnd, original.soundOnEnd)
+        try expectEqual(decoded.customStartSoundPath, original.customStartSoundPath)
+        try expectEqual(decoded.customEndSoundPath, original.customEndSoundPath)
     }
 }

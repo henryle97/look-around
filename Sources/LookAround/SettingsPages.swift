@@ -1,6 +1,7 @@
 import SwiftUI
 import ServiceManagement
 import AppKit
+import UniformTypeIdentifiers
 
 // MARK: - Settings pages
 
@@ -413,7 +414,12 @@ struct OfficeHoursPage: View {
 struct CustomizeScreenPage: View {
     @EnvironmentObject var settings: SettingsStore
     @Binding var route: [SettingsRoute]
+    @State private var wallpaperThumb: NSImage? = nil
+    @State private var customImageThumb: NSImage? = nil
+    @State private var isTargetedImage = false
+
     var body: some View {
+        Group {
         PageHeader(icon: "leaf.fill", title: "Screen Breaks", color: .laPink)
         BackButton(route: $route)
         SectionTitle("Material")
@@ -460,29 +466,189 @@ struct CustomizeScreenPage: View {
         }
         SectionTitle("Background")
         Card {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                ForEach(0..<BreakGradients.count, id: \.self) { i in
-                    Button { settings.appearance.gradientIndex = i } label: {
-                        LinearGradient(colors: BreakGradients[i], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            .frame(height: 76)
-                            .cornerRadius(12)
-                            .overlay(RoundedRectangle(cornerRadius: 12)
-                                .stroke(settings.appearance.gradientIndex == i ? Color.laBlue : Color.clear, lineWidth: 3))
-                            .overlay(alignment: .bottomTrailing) {
-                                if settings.appearance.gradientIndex == i {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.white).padding(6)
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("settings.customize.gradient.\(i)")
-                }
+            HStack(alignment: .top, spacing: 14) {
+                backgroundTile(mode: .wallpaper, label: "Wallpaper") { wallpaperPreview }
+                backgroundTile(mode: .customImage, label: "Custom Image") { customImagePreview }
+                backgroundTile(mode: .gradient, label: "Gradient") { gradientPreview }
             }
             .padding(.vertical, 10)
+
+            if settings.appearance.backgroundMode == .gradient {
+                CardDivider()
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    ForEach(0..<BreakGradients.count, id: \.self) { i in
+                        Button { settings.appearance.gradientIndex = i } label: {
+                            LinearGradient(colors: BreakGradients[i], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                .frame(height: 76)
+                                .cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12)
+                                    .stroke(settings.appearance.gradientIndex == i ? Color.laBlue : Color.clear, lineWidth: 3))
+                                .overlay(alignment: .bottomTrailing) {
+                                    if settings.appearance.gradientIndex == i {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(.white).padding(6)
+                                    }
+                                }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("settings.customize.gradient.\(i)")
+                    }
+                }
+                .padding(.vertical, 10)
+            }
+
+            CardDivider()
+            SettingRow(label: "Blurred background",
+                       subtitle: settings.appearance.backgroundMode == .gradient
+                           ? "Not available for a flat gradient." : nil) {
+                Toggle("", isOn: $settings.appearance.backgroundBlurEnabled).labelsHidden()
+                    .disabled(settings.appearance.backgroundMode == .gradient)
+                    .accessibilityIdentifier("settings.customize.background.blur")
+            }
+            .opacity(settings.appearance.backgroundMode == .gradient ? 0.5 : 1)
         }
-        Text("The break screen blurs your wallpaper; the theme tints the frosted backdrop.")
+        Text(backgroundCaption)
             .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
+        }
+        .onAppear {
+            if wallpaperThumb == nil { wallpaperThumb = WallpaperLoader.load() }
+            reloadCustomImageThumb()
+        }
+        .onChange(of: settings.appearance.customImagePath) { _ in reloadCustomImageThumb() }
+    }
+
+    private var backgroundCaption: String {
+        switch settings.appearance.backgroundMode {
+        case .wallpaper: return "The break screen blurs your wallpaper; the theme tints the frosted backdrop."
+        case .customImage: return "Your image is shown behind the break card; the theme tints the frosted backdrop."
+        case .gradient: return "Gradients render as a flat fill — blur doesn't apply."
+        }
+    }
+
+    private func backgroundTile<Preview: View>(
+        mode: AppearanceSettings.BackgroundMode, label: String, @ViewBuilder preview: () -> Preview
+    ) -> some View {
+        let selected = settings.appearance.backgroundMode == mode
+        return VStack(spacing: 7) {
+            Button {
+                if mode == .customImage && settings.appearance.customImagePath.isEmpty {
+                    chooseImage()
+                } else {
+                    settings.appearance.backgroundMode = mode
+                }
+            } label: {
+                preview()
+                    .frame(height: 76)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .stroke(selected ? Color.laBlue : Color.clear, lineWidth: 3))
+                    .overlay(alignment: .bottomTrailing) {
+                        if selected {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.white).padding(6)
+                        }
+                    }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("settings.customize.background.mode.\(mode.rawValue)")
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.laPrimaryText.opacity(selected ? 1 : 0.6))
+        }
+    }
+
+    @ViewBuilder private var wallpaperPreview: some View {
+        if let img = wallpaperThumb {
+            Image(nsImage: img).resizable().aspectRatio(contentMode: .fill)
+        } else {
+            LinearGradient(colors: [.gray.opacity(0.5), .gray.opacity(0.8)], startPoint: .top, endPoint: .bottom)
+        }
+    }
+
+    @ViewBuilder private var customImagePreview: some View {
+        if !settings.appearance.customImagePath.isEmpty, let img = customImageThumb {
+            ZStack(alignment: .topTrailing) {
+                Image(nsImage: img).resizable().aspectRatio(contentMode: .fill)
+                Button {
+                    settings.appearance.customImagePath = ""
+                    if settings.appearance.backgroundMode == .customImage {
+                        settings.appearance.backgroundMode = .wallpaper
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.white)
+                        .background(Circle().fill(Color.black.opacity(0.45)))
+                }
+                .buttonStyle(.plain)
+                .padding(4)
+                .accessibilityIdentifier("settings.customize.background.customImage.removeButton")
+            }
+        } else {
+            ZStack {
+                Color.laPrimaryText.opacity(0.06)
+                VStack(spacing: 4) {
+                    Image(systemName: "photo.badge.plus")
+                        .font(.system(size: 16))
+                    Text("Drag & Drop")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundColor(.laPrimaryText.opacity(0.5))
+            }
+            .overlay(RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [4]))
+                .foregroundColor(isTargetedImage ? Color.laBlue : Color.laPrimaryText.opacity(0.25)))
+            .onDrop(of: [.fileURL], isTargeted: $isTargetedImage, perform: loadDroppedImage)
+        }
+    }
+
+    @ViewBuilder private var gradientPreview: some View {
+        let i = settings.appearance.gradientIndex
+        let colors = BreakGradients.indices.contains(i) ? BreakGradients[i] : BreakGradients[0]
+        ZStack(alignment: .topTrailing) {
+            LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+            if settings.appearance.backgroundMode != .gradient {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.black.opacity(0.7))
+                    .padding(5)
+                    .background(Circle().fill(Color.white.opacity(0.85)))
+                    .padding(5)
+            }
+        }
+    }
+
+    private func reloadCustomImageThumb() {
+        let path = settings.appearance.customImagePath
+        customImageThumb = path.isEmpty ? nil : NSImage(contentsOfFile: path)
+    }
+
+    private func chooseImage() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        settings.appearance.customImagePath = url.path
+        settings.appearance.backgroundMode = .customImage
+        customImageThumb = NSImage(contentsOfFile: url.path)
+    }
+
+    private func loadDroppedImage(_ providers: [NSItemProvider]) -> Bool {
+        guard let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) })
+        else { return false }
+        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+            var url: URL? = nil
+            if let data = item as? Data { url = URL(dataRepresentation: data, relativeTo: nil) }
+            else if let u = item as? URL { url = u }
+            guard let picked = url else { return }
+            DispatchQueue.main.async {
+                settings.appearance.customImagePath = picked.path
+                settings.appearance.backgroundMode = .customImage
+                customImageThumb = NSImage(contentsOfFile: picked.path)
+            }
+        }
+        return true
     }
 }
 

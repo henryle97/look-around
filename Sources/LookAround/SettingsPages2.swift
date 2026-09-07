@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 // MARK: - Settings pages, part 2
 
@@ -569,9 +570,30 @@ struct LockScreenPage: View {
 struct SoundsPage: View {
     @EnvironmentObject var settings: SettingsStore
     var body: some View {
+        Group {
         PageHeader(icon: "speaker.wave.2.fill", title: "Sounds", color: .laRedOrange)
         Card {
-            SettingRow(label: "Break sound") {
+            SettingRow(label: "Play sound when the break begins") {
+                HStack(spacing: 10) {
+                    previewButton(axID: "settings.sounds.begin.preview") {
+                        SoundPlayer.playBreakStart(settings.appearance)
+                    }
+                    Toggle("", isOn: $settings.appearance.soundOnStart).labelsHidden()
+                        .accessibilityIdentifier("settings.sounds.begin.enabled")
+                }
+            }
+            CardDivider()
+            SettingRow(label: "Play sound when the break ends") {
+                HStack(spacing: 10) {
+                    previewButton(axID: "settings.sounds.end.preview") {
+                        SoundPlayer.playBreakEnd(settings.appearance)
+                    }
+                    Toggle("", isOn: $settings.appearance.soundOnEnd).labelsHidden()
+                        .accessibilityIdentifier("settings.sounds.end.enabled")
+                }
+            }
+            CardDivider()
+            SettingRow(label: "Sound style") {
                 Menu(settings.appearance.soundName.label) {
                     ForEach(AppearanceSettings.SoundName.allCases) { sound in
                         Button(sound.label) { settings.appearance.soundName = sound }
@@ -579,26 +601,118 @@ struct SoundsPage: View {
                 }
                 .menuStyle(.borderlessButton)
                 .frame(minWidth: 90)
+                .accessibilityIdentifier("settings.sounds.style")
             }
             CardDivider()
-            SettingRow(label: "Volume") {
+            SettingRow(label: "Adjust volume") {
                 Slider(value: $settings.appearance.soundVolume, in: 0...1)
                     .frame(width: 160)
                     .accessibilityIdentifier("settings.sounds.volume")
             }
-            CardDivider()
-            HStack {
-                Spacer()
-                Button("Play sample") {
-                    SoundPlayer.play(settings.appearance.soundName,
-                                     volume: settings.appearance.soundVolume)
-                }
-                .buttonStyle(.bordered).controlSize(.small)
-            }
-            .padding(.bottom, 8)
         }
-        Text("Pick the chime that plays when a break begins, or mute it with None.")
+        Text("The style above plays for either event unless you drop in a custom sound below; turning off a toggle silences that event entirely.")
             .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
+
+        SectionTitle("Custom sounds")
+        Card {
+            HStack(alignment: .top, spacing: 12) {
+                soundDropZone(label: "Start sound",
+                              path: $settings.appearance.customStartSoundPath,
+                              axPrefix: "settings.sounds.customStart")
+                soundDropZone(label: "End sound",
+                              path: $settings.appearance.customEndSoundPath,
+                              axPrefix: "settings.sounds.customEnd")
+            }
+            .padding(.vertical, 10)
+        }
+        Text("Overrides the style above for that event. Best under 5 seconds — all audio formats supported.")
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
+        }
+    }
+
+    private func previewButton(axID: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "play.circle")
+                .font(.system(size: 16))
+                .foregroundColor(.laPrimaryText.opacity(0.6))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(axID)
+    }
+
+    @ViewBuilder
+    private func soundDropZone(label: String, path: Binding<String>, axPrefix: String) -> some View {
+        if path.wrappedValue.isEmpty {
+            Button { chooseSound(into: path) } label: {
+                VStack(spacing: 6) {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 18))
+                    Text(label)
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("Drop your audio file here…")
+                        .font(.system(size: 11))
+                        .foregroundColor(.laPrimaryText.opacity(0.5))
+                        .multilineTextAlignment(.center)
+                }
+                .foregroundColor(.laPrimaryText.opacity(0.8))
+                .frame(maxWidth: .infinity, minHeight: 92)
+                .background(Color.laPrimaryText.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [4]))
+                    .foregroundColor(.laPrimaryText.opacity(0.25)))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("\(axPrefix).chooseButton")
+            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                loadDroppedSound(providers, into: path)
+            }
+        } else {
+            HStack(spacing: 8) {
+                Image(systemName: "waveform")
+                    .foregroundColor(.laPrimaryText.opacity(0.6))
+                Text((path.wrappedValue as NSString).lastPathComponent)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 4)
+                Button {
+                    SoundPlayer.playCustom(path: path.wrappedValue, volume: settings.appearance.soundVolume)
+                } label: {
+                    Image(systemName: "play.circle").foregroundColor(.laPrimaryText.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+                Button { path.wrappedValue = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundColor(.laPrimaryText.opacity(0.4))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("\(axPrefix).removeButton")
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
+            .background(Color.laPrimaryText.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private func chooseSound(into path: Binding<String>) {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.audio]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        path.wrappedValue = url.path
+    }
+
+    private func loadDroppedSound(_ providers: [NSItemProvider], into path: Binding<String>) -> Bool {
+        guard let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) })
+        else { return false }
+        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+            var url: URL? = nil
+            if let data = item as? Data { url = URL(dataRepresentation: data, relativeTo: nil) }
+            else if let u = item as? URL { url = u }
+            guard let picked = url else { return }
+            DispatchQueue.main.async { path.wrappedValue = picked.path }
+        }
+        return true
     }
 }
 

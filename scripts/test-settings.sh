@@ -66,7 +66,7 @@ sentinel_for() {
         iphoneSync)      echo "settings.iphoneSync.status";;
         automation)      echo "settings.automation.addScript";;
         about)           echo "settings.about.version";;
-        customizeScreen) echo "settings.customize.gradient.0";;
+        customizeScreen) echo "settings.customize.background.mode.wallpaper";;
         longBreaks)      echo "settings.longBreaks.duration";;
         plannedBreaks)   echo "settings.plannedBreaks.addButton";;
         officeHours)     echo "settings.officeHours.enabled";;
@@ -184,6 +184,30 @@ long_before="$("$AX" read "$BUNDLE_ID" settings.longBreaks.duration.value)"
 long_after="$("$AX" read "$BUNDLE_ID" settings.longBreaks.duration.value)"
 assert_ne "$long_after" "$long_before" "long break duration"
 
+goto_subpage customizeScreen
+blur_before="$("$AX" read "$BUNDLE_ID" settings.customize.background.blur)"
+"$AX" click "$BUNDLE_ID" settings.customize.background.blur >/dev/null
+sleep 0.2
+blur_after="$("$AX" read "$BUNDLE_ID" settings.customize.background.blur)"
+assert_ne "$blur_after" "$blur_before" "blurred background toggle"
+"$AX" click "$BUNDLE_ID" settings.customize.background.mode.gradient >/dev/null
+wait_for "settings.customize.gradient.0" || { echo "✗ FAIL: gradient grid never appeared after selecting Gradient"; exit 1; }
+echo "✓ gradient grid appears once Gradient background mode is selected"
+"$AX" click "$BUNDLE_ID" settings.customize.background.mode.wallpaper >/dev/null
+
+goto_page sounds
+soundbegin_before="$("$AX" read "$BUNDLE_ID" settings.sounds.begin.enabled)"
+"$AX" click "$BUNDLE_ID" settings.sounds.begin.enabled >/dev/null
+sleep 0.2
+soundbegin_after="$("$AX" read "$BUNDLE_ID" settings.sounds.begin.enabled)"
+assert_ne "$soundbegin_after" "$soundbegin_before" "play-sound-on-begin toggle"
+
+soundend_before="$("$AX" read "$BUNDLE_ID" settings.sounds.end.enabled)"
+"$AX" click "$BUNDLE_ID" settings.sounds.end.enabled >/dev/null
+sleep 0.2
+soundend_after="$("$AX" read "$BUNDLE_ID" settings.sounds.end.enabled)"
+assert_ne "$soundend_after" "$soundend_before" "play-sound-on-end toggle"
+
 goto_page smartPause
 meet_before="$("$AX" read "$BUNDLE_ID" settings.smartPause.meetings)"
 "$AX" click "$BUNDLE_ID" settings.smartPause.meetings >/dev/null
@@ -231,6 +255,11 @@ assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.maxPerBreak.value)" "
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.pausesPerDay.value)" "$pausesperday_after" "pauses per day persists"
 goto_subpage longBreaks
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.longBreaks.duration.value)" "$long_after" "long duration persists"
+goto_subpage customizeScreen
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.customize.background.blur)" "$blur_after" "blurred background toggle persists"
+goto_page sounds
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.sounds.begin.enabled)" "$soundbegin_after" "play-sound-on-begin toggle persists"
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.sounds.end.enabled)" "$soundend_after" "play-sound-on-end toggle persists"
 goto_page smartPause
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.smartPause.meetings)" "$meet_after" "meetings toggle persists"
 goto_subpage officeHours

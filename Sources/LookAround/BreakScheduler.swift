@@ -494,8 +494,7 @@ final class BreakScheduler: ObservableObject {
         skipAllowedAt = Date().addingTimeInterval(b.skipDelay)
         canSkip = b.skipDifficulty == .casual
         canEndEarly = false
-        SoundPlayer.play(settings.appearance.soundName,
-                           volume: settings.appearance.soundVolume)
+        SoundPlayer.playBreakStart(settings.appearance)
         AutomationRunner.runAll(settings.automations, trigger: .onBreakStart)
         if b.lockMacOnBreak && kind != .short {
             AutomationRunner.lockScreen()
@@ -528,6 +527,7 @@ final class BreakScheduler: ObservableObject {
         preBreakVisible = false
         countdownVisible = false
         clearOvertime()
+        SoundPlayer.playBreakEnd(settings.appearance)
         nextBreakAt = Date().addingTimeInterval(settings.breaks.workDuration)
         timeUntilNextBreak = settings.breaks.workDuration
         // Fresh per-break snooze budget for the next work cycle's pre-break warning.
