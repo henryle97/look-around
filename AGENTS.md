@@ -79,6 +79,9 @@ Read `./docs/unit-testing.md`.
 
 - **Style**: Prefer self-documenting code over comments; comments should explain intent.
 - **Git**: Read-only operations allowed. Use `git grep` and `git ls-files` for searching.
+- **Commit messages**: never include a model name (e.g. no "Claude Sonnet",
+  no "Co-Authored-By: Claude …" trailer) in commit messages or PR bodies for
+  this repo.
 - Give every interactive view a stable `.accessibilityIdentifier("…")`
   (convention: `area.control`) — never select by screen coordinates in
   tests. See `docs/ui-testing.md` for the full convention and pitfalls.
