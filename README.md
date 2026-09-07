@@ -69,6 +69,12 @@ bundled CLT SwiftPM manifest linker is broken in this environment, so
 
 To quit: menu bar → *Quit LookAround*. To reset everything: Settings → Stats.
 
+## Testing
+
+`./scripts/test-ui.sh` drives the real, running app end-to-end (no Xcode /
+XCUITest — see [AGENTS.md](AGENTS.md) for why and how, and
+`tools/axdrive/` for the Accessibility-API driver behind it).
+
 ## Project structure
 
 ```
@@ -86,6 +92,9 @@ Sources/LookAround/
   Helpers.swift         time formatting
   Resources/Info.plist  bundle metadata (LSUIElement agent app)
 build.sh                compile + bundle + sign script
+tools/axdrive/          Accessibility-API UI driver (agent-driven testing, no Xcode)
+scripts/test-ui.sh      end-to-end UI test using axdrive
+AGENTS.md               how to test UI changes without Xcode/XCUITest
 ```
 
 ## Deliberately out of scope

@@ -23,6 +23,30 @@ enum SettingsRoute: Hashable {
     case smartPause, wellness, stats
     case alerts, lockScreen, sounds, shortcuts
     case iphoneSync, automation, about
+
+    /// Stable slug for sidebar-row accessibility identifiers (`settings.nav.<slug>`).
+    var navSlug: String {
+        switch self {
+        case .general: return "general"
+        case .screenBreaks: return "screenBreaks"
+        case .longBreaks: return "longBreaks"
+        case .officeHours: return "officeHours"
+        case .customizeScreen: return "customizeScreen"
+        case .customMessages: return "customMessages"
+        case .plannedBreaks: return "plannedBreaks"
+        case .editPlanned: return "editPlanned"
+        case .smartPause: return "smartPause"
+        case .wellness: return "wellness"
+        case .stats: return "stats"
+        case .alerts: return "alerts"
+        case .lockScreen: return "lockScreen"
+        case .sounds: return "sounds"
+        case .shortcuts: return "shortcuts"
+        case .iphoneSync: return "iphoneSync"
+        case .automation: return "automation"
+        case .about: return "about"
+        }
+    }
 }
 
 struct SettingsView: View {
@@ -46,6 +70,7 @@ struct SettingsView: View {
         }
         .frame(minWidth: 940, minHeight: 700)
         .preferredColorScheme(.dark)
+        .accessibilityIdentifier("settings.window")
     }
 
     // MARK: sidebar
@@ -107,6 +132,7 @@ struct SettingsView: View {
                         in: RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("settings.nav.\(r.navSlug)")
     }
 
     // MARK: detail
@@ -243,18 +269,26 @@ struct SettingRow<Control: View>: View {
 }
 
 /// Dark chip + stepper, e.g. "45 seconds ↕".
+///
+/// `id` is a stable accessibility identifier for UI-test/agent drivers
+/// (see AGENTS.md): the displayed value carries `"\(id).value"` (readable
+/// via AXValue) and the stepper control itself carries `id` (drivable via
+/// the AX increment/decrement actions).
 struct ChipStepper<V: Strideable>: View {
     @Binding var value: V
     var range: ClosedRange<V>
     var step: V.Stride
+    var id: String
     var format: (V) -> String
     var body: some View {
         HStack(spacing: 8) {
             Text(format(value))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.white)
+                .accessibilityIdentifier("\(id).value")
             Stepper("", value: $value, in: range, step: step)
                 .labelsHidden()
+                .accessibilityIdentifier(id)
         }
     }
 }
