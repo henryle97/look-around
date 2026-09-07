@@ -1,13 +1,15 @@
 import AppKit
 import SwiftUI
 
-/// Owns the fullscreen break overlay, heads-up panel and cursor-following countdown.
+/// Owns the fullscreen break overlay, heads-up panel, cursor-following
+/// countdown pills and the Settings window.
 @MainActor
-final class WindowManager: ObservableObject {
+final class WindowManager: NSObject, NSWindowDelegate {
     static let shared = WindowManager()
 
     private var overlayWindows: [NSWindow] = []
     private var preBreakWindow: NSPanel?
+    private var settingsWindow: NSWindow?
     private var floatingWindow: NSWindow?
     private var floatingKind: FloatingKind?
     private var floatTimer: Timer?
@@ -106,6 +108,38 @@ final class WindowManager: ObservableObject {
 
     func hidePreBreak() {
         preBreakWindow?.orderOut(nil)
+    }
+
+    // MARK: - settings window (own window: reliable in menu-bar-only apps)
+    func openSettings(scheduler: BreakScheduler, settings: SettingsStore) {
+        if let w = settingsWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            w.makeKeyAndOrderFront(nil)
+            return
+        }
+        let view = SettingsView()
+            .environmentObject(scheduler)
+            .environmentObject(settings)
+        let hosting = NSHostingView(rootView: view)
+        let rect = NSRect(x: 0, y: 0, width: 1000, height: 720)
+        hosting.frame = rect
+        let win = NSWindow(contentRect: rect,
+                           styleMask: [.titled, .closable, .resizable, .miniaturizable],
+                           backing: .buffered, defer: false)
+        win.contentView = hosting
+        win.center()
+        win.title = "LookAround Settings"
+        win.isReleasedWhenClosed = false
+        win.delegate = self
+        settingsWindow = win
+        NSApp.activate(ignoringOtherApps: true)
+        win.makeKeyAndOrderFront(nil)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        if (notification.object as? NSWindow) == settingsWindow {
+            settingsWindow = nil
+        }
     }
 
     // MARK: - floating pills (countdown / overtime) that follow the cursor

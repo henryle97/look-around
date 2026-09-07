@@ -26,12 +26,6 @@ struct LookAroundApp: App {
                 .environmentObject(scheduler)
         }
         .menuBarExtraStyle(.window)
-
-        Settings {
-            SettingsView()
-                .environmentObject(settings)
-                .environmentObject(scheduler)
-        }
     }
 }
 

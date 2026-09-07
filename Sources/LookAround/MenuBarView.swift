@@ -24,13 +24,13 @@ struct MenuBarView: View {
                 .background(Color.white.opacity(0.08), in: Capsule())
                 Spacer()
                 Button {
-                    NSApp.activate(ignoringOtherApps: true)
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                    WindowManager.shared.openSettings(scheduler: scheduler, settings: settings)
                 } label: {
                     Image(systemName: "gearshape")
                         .foregroundColor(.white.opacity(0.7))
                 }
                 .buttonStyle(.plain)
+                .help("Open Settings")
             }
 
             if tab == .now { nowTab } else { statsTab }
