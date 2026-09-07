@@ -5,6 +5,7 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject var scheduler: BreakScheduler
     @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject var updateChecker: UpdateChecker
     @State private var tab: PopupTab = .now
 
     enum PopupTab { case now, stats }
@@ -42,6 +43,21 @@ struct MenuBarView: View {
             }
 
             if tab == .now { nowTab } else { statsTab }
+            if updateChecker.isUpdateAvailable(settings: settings), let release = updateChecker.latestRelease {
+                Divider().background(Color.laPrimaryText.opacity(0.15))
+                Button {
+                    NSWorkspace.shared.open(release.url)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down.circle.fill")
+                        Text("Update available — v\(release.version)")
+                    }
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.laBlue)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("menubar.updateAvailable")
+            }
         }
         .padding(14)
         .frame(width: 370)

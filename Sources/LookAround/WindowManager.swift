@@ -120,6 +120,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
         let view = SettingsView()
             .environmentObject(scheduler)
             .environmentObject(settings)
+            .environmentObject(Shared.updateChecker)
         let hosting = NSHostingView(rootView: view)
         let rect = NSRect(x: 0, y: 0, width: 1000, height: 720)
         hosting.frame = rect

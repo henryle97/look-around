@@ -133,6 +133,18 @@ struct WellnessSettings: Codable, Equatable {
     ]
 }
 
+// MARK: - Update checking
+struct UpdateSettings: Codable, Equatable {
+    /// Whether `UpdateChecker` should run its once-at-launch + daily
+    /// background check. The manual "Check for Updates" button (About page)
+    /// works regardless of this setting.
+    var autoCheckEnabled: Bool = true
+    /// A release the user explicitly dismissed via "Skip this version" —
+    /// suppresses the update banner/link until a newer one ships.
+    var skippedVersion: String? = nil
+    var lastCheckedAt: Date? = nil
+}
+
 // MARK: - Appearance / customization
 struct AppearanceSettings: Codable, Equatable {
     enum AppTheme: String, Codable, CaseIterable, Identifiable {
