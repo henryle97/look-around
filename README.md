@@ -5,6 +5,25 @@ No Xcode required: it compiles with the Command Line Tools alone.
 
 ![Break screen](docs/screenshots/break-screen.jpg)
 
+🌐 **Website:** https://henryle97.github.io/look-around/
+
+## Install
+
+**Homebrew**
+
+```sh
+brew install --cask henryle97/tap/lookaround
+```
+
+**Direct download** — grab the latest `LookAround-*.dmg` from
+[GitHub Releases](https://github.com/henryle97/look-around/releases/latest),
+open it, and drag LookAround into Applications.
+
+> LookAround is distributed without an Apple Developer certificate (no
+> signing, ever — see [packaging/homebrew/README.md](packaging/homebrew/README.md)).
+> On first launch macOS may block it — approve it under System Settings →
+> Privacy & Security → Open Anyway (or right-click the app in Finder → Open).
+
 ## What it looks like
 
 - **Break screen** — blurred frosted backdrop, live clock, huge custom
@@ -102,6 +121,10 @@ Tests/LookAroundTests/  standalone unit-test binary for pure logic (no XCTest)
 scripts/test-unit.sh    compiles + runs Tests/LookAroundTests/
 AGENTS.md               how to test UI changes without Xcode/XCUITest
 docs/unit-testing.md    how to unit-test pure logic without XCTest/swift test
+docs/index.html         product website (GitHub Pages, served from /docs)
+scripts/package-dmg.sh  build + package a versioned, verified DMG
+scripts/release-local.sh  publish a release from a local machine (permission-gated)
+packaging/homebrew/     Cask template + tap setup/validation docs
 ```
 
 ## Deliberately out of scope

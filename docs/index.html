@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LookAround — gentle break reminders for your Mac</title>
+<meta name="description" content="LookAround is a free, open-source macOS menu-bar app that reminds you to rest your eyes. Smart breaks, Smart Pause, office hours, and automations.">
+<link rel="canonical" href="https://henryle97.github.io/look-around/">
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="assets/style.css">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="LookAround">
+<meta property="og:url" content="https://henryle97.github.io/look-around/">
+<meta property="og:title" content="LookAround — gentle break reminders for your Mac">
+<meta property="og:description" content="A free, open-source macOS menu-bar app that reminds you to rest your eyes. Smart breaks, Smart Pause, office hours, and automations.">
+<meta property="og:image" content="https://henryle97.github.io/look-around/screenshots/break-screen.jpg">
+<meta property="og:image:width" content="1500">
+<meta property="og:image:height" content="843">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LookAround — gentle break reminders for your Mac">
+<meta name="twitter:description" content="A free, open-source macOS menu-bar app that reminds you to rest your eyes. Smart breaks, Smart Pause, office hours, and automations.">
+<meta name="twitter:image" content="https://henryle97.github.io/look-around/screenshots/break-screen.jpg">
+</head>
+<body>
+
+<header class="nav">
+  <a class="brand" href="./">
+    <img src="assets/icon.png" alt="LookAround icon" width="32" height="32">
+    <span>LookAround</span>
+  </a>
+  <nav>
+    <a href="#features">Features</a>
+    <a href="#screenshot">Screenshots</a>
+    <a href="#install">Install</a>
+    <a class="github" href="https://github.com/henryle97/look-around">GitHub</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <img class="hero-icon" src="assets/icon.png" alt="LookAround app icon" width="112" height="112">
+    <h1>Look away. Your eyes will thank you.</h1>
+    <p class="tagline">LookAround is a free, open-source menu-bar app for macOS that
+      reminds you to take regular eye breaks — and gets out of your way the rest of the time.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/henryle97/look-around/releases/latest">Download for Mac</a>
+      <button class="btn code" id="brew-copy" data-copy="brew install --cask henryle97/tap/lookaround">
+        <code>brew install --cask henryle97/tap/lookaround</code><span class="copy-hint">copy</span>
+      </button>
+    </div>
+    <ul class="chips">
+      <li>macOS 13+</li>
+      <li>Apple Silicon</li>
+      <li>Free &amp; open source (MIT)</li>
+      <li>No account, no tracking</li>
+    </ul>
+  </section>
+
+  <section class="shot" id="screenshot">
+    <figure>
+      <img src="screenshots/break-screen.jpg" alt="LookAround break screen with countdown" width="1500" height="843" loading="lazy">
+      <figcaption>The break screen: your message, a live countdown, and Skip / Lock Screen actions.</figcaption>
+    </figure>
+  </section>
+
+  <section id="features">
+    <h2>Everything you need, nothing nagging you</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Smart break engine</h3>
+        <p>Configurable work intervals, short breaks, and long breaks every N short breaks — with a live countdown in the menu bar.</p>
+      </div>
+      <div class="card">
+        <h3>Heads-up warning</h3>
+        <p>A floating pre-break panel with Start now, +1m / +5m / +15m snooze and Skip — plus a small countdown pill that follows your cursor.</p>
+      </div>
+      <div class="card">
+        <h3>Smart Pause</h3>
+        <p>Breaks wait during meetings, calls, video playback, screen sharing, deep-focus apps and fullscreen apps — no permissions needed.</p>
+      </div>
+      <div class="card">
+        <h3>Respects your flow</h3>
+        <p>Breaks defer while you're typing or dragging, idle time freezes the work timer, and office hours keep weekends quiet.</p>
+      </div>
+      <div class="card">
+        <h3>Planned breaks</h3>
+        <p>Fixed-time breaks for lunch and walks with weekday recurrence — they blend into the regular cycle instead of piling on.</p>
+      </div>
+      <div class="card">
+        <h3>Posture &amp; blink nudges</h3>
+        <p>Gentle macOS notifications on their own intervals with rotating 20-20-20 friendly messages.</p>
+      </div>
+      <div class="card">
+        <h3>Automations</h3>
+        <p>Run Shell, AppleScript, or Shortcuts actions when a break starts or ends — pause music, set Slack status, dim the lights.</p>
+      </div>
+      <div class="card">
+        <h3>Break stats</h3>
+        <p>Taken / skipped / postponed counts with a Screen Score ring in the menu-bar popup, persisted across launches.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2>Install</h2>
+    <div class="install-grid">
+      <div class="card">
+        <h3>Homebrew</h3>
+        <pre><code>brew install --cask henryle97/tap/lookaround</code></pre>
+        <p>Upgrade later with <code>brew upgrade --cask lookaround</code>.</p>
+      </div>
+      <div class="card">
+        <h3>Direct download</h3>
+        <ol>
+          <li>Download the <code>.dmg</code> from the
+            <a href="https://github.com/henryle97/look-around/releases/latest">latest GitHub Release</a>.</li>
+          <li>Open it and drag LookAround into Applications.</li>
+          <li>Launch LookAround — look for the 👁 in the menu bar.</li>
+        </ol>
+      </div>
+    </div>
+    <aside class="notice">
+      <strong>First-launch note.</strong> LookAround is currently distributed without an
+      Apple Developer certificate, so macOS may block the first launch. Approve it under
+      System Settings → Privacy &amp; Security → Open Anyway (or right-click the app in
+      Finder → Open). Never disable Gatekeeper for this.
+    </aside>
+  </section>
+</main>
+
+<footer>
+  <p>LookAround is <a href="https://github.com/henryle97/look-around">open source (MIT)</a> by
+    <a href="https://github.com/henryle97">henryle97</a>. No account, no tracking, your settings stay on your Mac.</p>
+</footer>
+
+<script>
+document.getElementById('brew-copy').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  try {
+    await navigator.clipboard.writeText(btn.dataset.copy);
+    btn.querySelector('.copy-hint').textContent = 'copied!';
+  } catch {
+    const r = document.createRange();
+    r.selectNodeContents(btn.querySelector('code'));
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+    document.execCommand('copy');
+  }
+  setTimeout(() => btn.querySelector('.copy-hint').textContent = 'copy', 1500);
+});
+</script>
+</body>
+</html>

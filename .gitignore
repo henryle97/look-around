@@ -1,6 +1,8 @@
 .build/
 DerivedData/
 LookAround.app/
+dist/
+*.dmg
 *.o
 *.d
 .DS_Store
