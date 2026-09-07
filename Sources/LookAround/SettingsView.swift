@@ -270,28 +270,165 @@ struct SettingRow<Control: View>: View {
     }
 }
 
-/// Dark chip + stepper, e.g. "45 seconds ↕".
+/// Numeric types `ChipStepper`/`EditableHMBox` can edit as free text: needs
+/// a lossless round-trip through `Double` for range-clamping and (for
+/// `TimeInterval` fields) second↔minute conversion while editing.
+protocol ChipStepperNumeric: Strideable {
+    var doubleValue: Double { get }
+    init(clamped d: Double)
+}
+extension Int: ChipStepperNumeric {
+    var doubleValue: Double { Double(self) }
+    init(clamped d: Double) { self = Int(d.rounded()) }
+}
+extension Double: ChipStepperNumeric {
+    var doubleValue: Double { self }
+    init(clamped d: Double) { self = d }
+}
+
+/// Dark chip + stepper, e.g. "45 seconds ↕", where the number is also
+/// directly editable: click it to type a value; Return or clicking away
+/// commits it (clamped to `range`).
 ///
 /// `id` is a stable accessibility identifier for UI-test/agent drivers
 /// (see AGENTS.md): the displayed value carries `"\(id).value"` (readable
-/// via AXValue) and the stepper control itself carries `id` (drivable via
-/// the AX increment/decrement actions).
-struct ChipStepper<V: Strideable>: View {
+/// via AXValue, clickable to start editing) and the stepper control itself
+/// carries `id` (drivable via the AX increment/decrement actions).
+///
+/// `isDurationSeconds` marks a `TimeInterval` stored in seconds but shown
+/// in minutes once it reaches a whole minute (matching `format`'s own
+/// second/minute switch): editing then happens in whichever unit is
+/// currently displayed, so what you type matches what you saw.
+struct ChipStepper<V: ChipStepperNumeric>: View {
     @Binding var value: V
     var range: ClosedRange<V>
     var step: V.Stride
     var id: String
+    var isDurationSeconds: Bool = false
     var format: (V) -> String
+
+    @State private var isEditing = false
+    @State private var text = ""
+    @State private var editUnitIsMinutes = false
+    @FocusState private var isFocused: Bool
+
     var body: some View {
         HStack(spacing: 8) {
-            Text(format(value))
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.laPrimaryText)
-                .accessibilityIdentifier("\(id).value")
+            // NB: the "\(id).value" identifier is applied to just the
+            // TextField/Text leaf, never to a container that also holds the
+            // "sec"/"min" indicator — a shared container identifier gets
+            // stamped onto every leaf inside it, making lookups ambiguous.
+            if isEditing {
+                HStack(spacing: 3) {
+                    TextField("", text: $text)
+                        .textFieldStyle(.plain)
+                        .frame(width: 34)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.laPrimaryText)
+                        .focused($isFocused)
+                        .onSubmit(commit)
+                        .onExitCommand { isEditing = false }
+                        .onChange(of: text) { text = $0.filter(\.isNumber) }
+                        .accessibilityIdentifier("\(id).value")
+                    if isDurationSeconds {
+                        Text(editUnitIsMinutes ? "min" : "sec")
+                            .font(.system(size: 12)).foregroundColor(.laPrimaryText.opacity(0.5))
+                    }
+                }
+            } else {
+                Text(format(value))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.laPrimaryText)
+                    .onTapGesture(perform: beginEditing)
+                    .accessibilityAction(.default, beginEditing)
+                    .accessibilityIdentifier("\(id).value")
+            }
             Stepper("", value: $value, in: range, step: step)
                 .labelsHidden()
                 .accessibilityIdentifier(id)
         }
+        .onChange(of: isFocused) { focused in
+            if !focused && isEditing { commit() }
+        }
+    }
+
+    private func beginEditing() {
+        let seconds = value.doubleValue
+        editUnitIsMinutes = isDurationSeconds && seconds >= 60 && seconds.truncatingRemainder(dividingBy: 60) == 0
+        text = "\(Int(editUnitIsMinutes ? seconds / 60 : seconds))"
+        isEditing = true
+        isFocused = true
+    }
+
+    private func commit() {
+        if let n = Double(text) {
+            let raw = n * (editUnitIsMinutes ? 60 : 1)
+            let clamped = min(max(raw, range.lowerBound.doubleValue), range.upperBound.doubleValue)
+            value = V(clamped: clamped)
+        }
+        isEditing = false
+    }
+}
+
+/// Dark chip + stepper for a plain integer, e.g. "3 H ↕", where the number
+/// itself is also directly editable: click it to type a value; Return or
+/// clicking away commits it (clamped to `range`).
+///
+/// `id` follows the same convention as `ChipStepper`: the displayed number
+/// carries `"\(id).value"`, the stepper control carries `id`.
+struct EditableHMBox: View {
+    @Binding var value: Int
+    var unit: String
+    var range: ClosedRange<Int>
+    var id: String
+
+    @State private var isEditing = false
+    @State private var text = ""
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Group {
+                if isEditing {
+                    TextField("", text: $text)
+                        .textFieldStyle(.plain)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 26)
+                        .focused($isFocused)
+                        .onSubmit(commit)
+                        .onExitCommand { isEditing = false }
+                        .onChange(of: text) { text = $0.filter(\.isNumber) }
+                } else {
+                    Text("\(value)")
+                        .onTapGesture(perform: beginEditing)
+                        .accessibilityAction(.default, beginEditing)
+                        .frame(minWidth: 22, alignment: .trailing)
+                }
+            }
+            .font(.system(size: 14, weight: .medium))
+            .foregroundColor(.laPrimaryText)
+            .accessibilityIdentifier("\(id).value")
+            Text(unit).font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.5))
+            Stepper("", value: $value, in: range).labelsHidden().accessibilityIdentifier(id)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Color.laPrimaryText.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
+        .onChange(of: isFocused) { focused in
+            if !focused && isEditing { commit() }
+        }
+    }
+
+    private func beginEditing() {
+        text = "\(value)"
+        isEditing = true
+        isFocused = true
+    }
+
+    private func commit() {
+        if let n = Int(text) {
+            value = min(max(n, range.lowerBound), range.upperBound)
+        }
+        isEditing = false
     }
 }
 
