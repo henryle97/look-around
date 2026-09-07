@@ -10,5 +10,6 @@ registerSmartPauseTests(runner)
 registerTimeFmtTests(runner)
 registerAppearanceSettingsTests(runner)
 registerSettingsStoreTests(runner)
+registerPromptPickerTests(runner)
 
 exit(runner.finish())

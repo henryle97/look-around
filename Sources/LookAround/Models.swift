@@ -14,8 +14,11 @@ enum SkipDifficulty: String, Codable, CaseIterable, Identifiable {
 }
 
 // MARK: - Break settings (short / long)
+// Defaults follow the stretchly-style cadence (github.com/hovancik/stretchly):
+// a 20-second mini break every 10 minutes, a 5-minute long break every 30
+// minutes (every 3rd mini break, since 3 × 10 min = 30 min).
 struct BreakSettings: Codable, Equatable {
-    var workDuration: TimeInterval = 20 * 60      // 20 min
+    var workDuration: TimeInterval = 10 * 60      // 10 min
     var shortBreakDuration: TimeInterval = 20     // 20 sec
     var longBreakEnabled: Bool = true
     var longBreakDuration: TimeInterval = 5 * 60  // 5 min
@@ -133,6 +136,111 @@ struct WellnessSettings: Codable, Equatable {
     ]
 }
 
+// MARK: - Break-screen content (prompts)
+
+/// What kind of instruction a break-screen prompt gives. Drives the emoji
+/// prefix shown with the prompt and lets `PromptPicker` avoid showing the
+/// same kind of thing twice in a row.
+enum PromptCategory: String, Codable, CaseIterable, Identifiable, Equatable {
+    case eyes, blink, posture, stretch, movement, breathing, water, mental, quote, custom
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .eyes: return "Eyes"
+        case .blink: return "Blink"
+        case .posture: return "Posture"
+        case .stretch: return "Stretch"
+        case .movement: return "Movement"
+        case .breathing: return "Breathing"
+        case .water: return "Water"
+        case .mental: return "Mental reset"
+        case .quote: return "Quote"
+        case .custom: return "Custom"
+        }
+    }
+    var emoji: String {
+        switch self {
+        case .eyes: return "👀"
+        case .blink: return "😌"
+        case .posture: return "🧍"
+        case .stretch: return "🤸"
+        case .movement: return "🚶"
+        case .breathing: return "🌬️"
+        case .water: return "💧"
+        case .mental: return "🧠"
+        case .quote: return "🌿"
+        case .custom: return ""
+        }
+    }
+}
+
+/// One break-screen message. `weight` biases random selection (higher =
+/// shown more often); `PromptPicker` (Helpers.swift) is what actually picks
+/// one, favoring unseen prompts and a different category than last time.
+struct BreakPrompt: Codable, Equatable, Identifiable {
+    var id: String
+    var category: PromptCategory
+    var text: String
+    var weight: Int = 1
+
+    var displayText: String { category.emoji.isEmpty ? text : "\(category.emoji) \(text)" }
+}
+
+/// Loads the curated break-prompt pools from `BreakPrompts.json` in the app
+/// bundle (adapted from stretchly's BSD-2-Clause `miniBreakIdeas`/
+/// `longBreakIdeas`, github.com/hovancik/stretchly — trimmed to one
+/// instruction each). Content lives in JSON rather than Swift so it's easy
+/// to extend without recompiling.
+///
+/// Falls back to a small embedded set if the resource can't be loaded —
+/// e.g. the standalone `Tests/LookAroundTests` binary has no app bundle at
+/// all, so it always exercises this fallback rather than the JSON file.
+enum BreakPromptLibrary {
+    private struct File: Codable {
+        var short: [BreakPrompt]
+        var long: [BreakPrompt]
+    }
+
+    static let shared: (short: [BreakPrompt], long: [BreakPrompt]) = load()
+
+    private static func load() -> (short: [BreakPrompt], long: [BreakPrompt]) {
+        guard let url = Bundle.main.url(forResource: "BreakPrompts", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let file = try? JSONDecoder().decode(File.self, from: data),
+              !file.short.isEmpty, !file.long.isEmpty
+        else {
+            return (fallbackShort, fallbackLong)
+        }
+        return (file.short, file.long)
+    }
+
+    private static let fallbackShort: [BreakPrompt] = [
+        BreakPrompt(id: "short-eyes-distance", category: .eyes, text: "Look at something about 6 m / 20 ft away.", weight: 3),
+        BreakPrompt(id: "short-eyes-farthest", category: .eyes, text: "Find the farthest point you can see and hold your gaze there.", weight: 1),
+        BreakPrompt(id: "short-eyes-window", category: .eyes, text: "Look out a window and focus on the horizon.", weight: 1),
+        BreakPrompt(id: "short-blink-slow", category: .blink, text: "Blink slowly ten times.", weight: 1),
+        BreakPrompt(id: "short-blink-close", category: .blink, text: "Close your eyes for a few seconds, then open slowly.", weight: 1),
+        BreakPrompt(id: "short-posture-shoulders", category: .posture, text: "Roll your shoulders back and drop them.", weight: 1),
+        BreakPrompt(id: "short-posture-sit", category: .posture, text: "Sit up, feet flat, screen at eye level.", weight: 1),
+        BreakPrompt(id: "short-stretch-neck-turn", category: .stretch, text: "Slowly turn your head to one side and hold for 10 seconds.", weight: 1),
+        BreakPrompt(id: "short-breathing-three", category: .breathing, text: "Take three slow breaths.", weight: 1),
+        BreakPrompt(id: "short-breathing-count", category: .breathing, text: "Inhale for four counts, exhale for four.", weight: 1),
+    ]
+
+    private static let fallbackLong: [BreakPrompt] = [
+        BreakPrompt(id: "long-movement-walk", category: .movement, text: "Stand up and walk around for a minute.", weight: 3),
+        BreakPrompt(id: "long-movement-another-room", category: .movement, text: "Walk to another room and back.", weight: 1),
+        BreakPrompt(id: "long-stretch-arms", category: .stretch, text: "Stretch your arms overhead and hold.", weight: 1),
+        BreakPrompt(id: "long-stretch-shoulders", category: .stretch, text: "Roll your shoulders backward, five times.", weight: 1),
+        BreakPrompt(id: "long-water-glass", category: .water, text: "Grab a glass of water.", weight: 1),
+        BreakPrompt(id: "long-mental-step-away", category: .mental, text: "Step away from the problem — your brain can work without you.", weight: 1),
+        BreakPrompt(id: "long-mental-gratitude", category: .mental, text: "Think of one thing that went well today.", weight: 1),
+        BreakPrompt(id: "long-quote-still-here", category: .quote, text: "The screen will still be here.", weight: 1),
+        BreakPrompt(id: "long-quote-part-of-work", category: .quote, text: "A short pause is part of the work.", weight: 1),
+        BreakPrompt(id: "long-quote-leave", category: .quote, text: "Leave the screen for a moment.", weight: 1),
+    ]
+}
+
 // MARK: - Appearance / customization
 struct AppearanceSettings: Codable, Equatable {
     enum AppTheme: String, Codable, CaseIterable, Identifiable {
@@ -153,17 +261,8 @@ struct AppearanceSettings: Codable, Equatable {
         }
     }
 
-    var shortMessages: [String] = [
-        "Eyes to the horizon",
-        "Breathe, relax, and come back",
-        "Drink some water, look away, and come back",
-        "Take a quick walk around the house"
-    ]
-    var longMessages: [String] = [
-        "That was a good sprint - now relax",
-        "Amazing work. Now it's time stretch those muscles",
-        "You truly deserve this break!"
-    ]
+    var shortMessages: [BreakPrompt] = AppearanceSettings.defaultShortMessages
+    var longMessages: [BreakPrompt] = AppearanceSettings.defaultLongMessages
     var shortMessagesEnabled: Bool = true
     var longMessagesEnabled: Bool = true
     var gradientIndex: Int = 0
@@ -190,19 +289,25 @@ struct AppearanceSettings: Codable, Equatable {
 
     init() {}
 
+    /// Decodes a message pool, tolerating a pre-`BreakPrompt` snapshot where
+    /// the key held a plain `[String]`: each string becomes a `.custom`
+    /// prompt with a stable synthetic id so old settings still load.
+    private static func decodeMessagePool(
+        _ c: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys, default def: [BreakPrompt]
+    ) -> [BreakPrompt] {
+        if let prompts = try? c.decode([BreakPrompt].self, forKey: key) { return prompts }
+        if let legacy = try? c.decode([String].self, forKey: key) {
+            return legacy.enumerated().map { i, text in
+                BreakPrompt(id: "legacy-\(key.rawValue)-\(i)", category: .custom, text: text, weight: 1)
+            }
+        }
+        return def
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        shortMessages = try c.decodeIfPresent([String].self, forKey: .shortMessages) ?? [
-            "Eyes to the horizon",
-            "Breathe, relax, and come back",
-            "Drink some water, look away, and come back",
-            "Take a quick walk around the house"
-        ]
-        longMessages = try c.decodeIfPresent([String].self, forKey: .longMessages) ?? [
-            "That was a good sprint - now relax",
-            "Amazing work. Now it's time stretch those muscles",
-            "You truly deserve this break!"
-        ]
+        shortMessages = Self.decodeMessagePool(c, forKey: .shortMessages, default: Self.defaultShortMessages)
+        longMessages = Self.decodeMessagePool(c, forKey: .longMessages, default: Self.defaultLongMessages)
         shortMessagesEnabled = try c.decodeIfPresent(Bool.self, forKey: .shortMessagesEnabled) ?? true
         longMessagesEnabled = try c.decodeIfPresent(Bool.self, forKey: .longMessagesEnabled) ?? true
         gradientIndex = try c.decodeIfPresent(Int.self, forKey: .gradientIndex) ?? 0
@@ -226,6 +331,17 @@ struct AppearanceSettings: Codable, Equatable {
         try c.encode(appTheme, forKey: .appTheme)
         try c.encode(breakMaterial, forKey: .breakMaterial)
     }
+
+    // MARK: default prompt pools
+    //
+    // Short pool: shown during 20-second eye breaks — one clear instruction,
+    // nothing to read. Long pool: shown during 5-minute breaks — movement,
+    // stretches, water, and a lighter mental-reset/quote mix. The full,
+    // stretchly-inspired library ships as `BreakPrompts.json` in the app
+    // bundle (see `BreakPromptLibrary`) so it's easy to extend without
+    // recompiling; these just forward to whatever that loaded.
+    static var defaultShortMessages: [BreakPrompt] { BreakPromptLibrary.shared.short }
+    static var defaultLongMessages: [BreakPrompt] { BreakPromptLibrary.shared.long }
 }
 
 // MARK: - Automations
