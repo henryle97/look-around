@@ -75,6 +75,10 @@ To quit: menu bar → *Quit LookAround*. To reset everything: Settings → Stats
 XCUITest — see [AGENTS.md](AGENTS.md) for why and how, and
 `tools/axdrive/` for the Accessibility-API driver behind it).
 
+`./scripts/test-unit.sh` runs a standalone unit-test binary for pure logic
+(scheduling rules, settings persistence, pause-reason evaluation) — no
+XCTest/`swift test` either, see [docs/unit-testing.md](docs/unit-testing.md).
+
 ## Project structure
 
 ```
@@ -94,7 +98,10 @@ Sources/LookAround/
 build.sh                compile + bundle + sign script
 tools/axdrive/          Accessibility-API UI driver (agent-driven testing, no Xcode)
 scripts/test-ui.sh      end-to-end UI test using axdrive
+Tests/LookAroundTests/  standalone unit-test binary for pure logic (no XCTest)
+scripts/test-unit.sh    compiles + runs Tests/LookAroundTests/
 AGENTS.md               how to test UI changes without Xcode/XCUITest
+docs/unit-testing.md    how to unit-test pure logic without XCTest/swift test
 ```
 
 ## Deliberately out of scope

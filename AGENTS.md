@@ -21,6 +21,9 @@ After making any code change:
 
 - MUST run `./build.sh` to build (compiles with `swiftc`, bundles the
   `.app`, ad-hoc signs). Fix any build errors and repeat.
+- SHOULD run `./scripts/test-unit.sh` if you touched `Models.swift`,
+  `SmartPause.swift`, `Helpers.swift`, or `SettingsStore.swift`. Fix any
+  failures and repeat.
 - SHOULD run the relevant end-to-end test, e.g. `./scripts/test-ui.sh` or
   `./scripts/test-settings.sh`. Fix any failures and repeat.
 
@@ -51,6 +54,8 @@ There is no linter/formatter configured in this repo.
 - `Sources/LookAround/Theme.swift` — AppTheme / Liquid Glass styling
 - `tools/axdrive/` — Accessibility-API driver used for UI testing (no Xcode, so no XCUITest)
 - `scripts/test-*.sh` — end-to-end UI test suites driven by `axdrive`
+- `Tests/LookAroundTests/` — standalone unit-test binary for pure logic (no XCTest — see below)
+- `scripts/test-unit.sh` — compiles and runs `Tests/LookAroundTests/`
 - `packaging/homebrew/` — Homebrew Cask source; `.github/workflows/release.yml` builds and publishes the DMG on `v*` tags
 
 ## Workflows
@@ -61,6 +66,14 @@ Apply whenever you modify UI behavior: how to add accessibility
 identifiers, how to launch/write/run the `axdrive`-based test scripts,
 and known `axdrive` quirks.
 Read `./docs/ui-testing.md`.
+
+### Unit testing pure logic (no XCTest/`swift test`)
+
+Apply whenever you touch scheduling rules, settings persistence, or
+pause-reason evaluation: what's in/out of scope for `Tests/LookAroundTests/`,
+why `UserDefaults.standard` is safe to use directly there, and how to add a
+test or a new source file to the harness.
+Read `./docs/unit-testing.md`.
 
 ## Development Guidelines
 

@@ -131,6 +131,7 @@ struct SettingsView: View {
             .padding(.horizontal, 10).padding(.vertical, 7)
             .background(selected ? Color.laPrimaryText.opacity(0.09) : Color.clear,
                         in: RoundedRectangle(cornerRadius: 10))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("settings.nav.\(r.navSlug)")
