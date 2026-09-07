@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 
 /// Dev/test-mode switches for agent-driven UI testing (see AGENTS.md).
 /// Checked once at launch, before any state is loaded — never compiled out,
@@ -25,35 +26,38 @@ enum UITesting {
 @main
 struct LookAroundApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var settings = SettingsStore()
-    @StateObject private var scheduler: BreakScheduler
 
     init() {
         UITesting.resetStateIfRequested()
         let s = SettingsStore()
-        _settings = StateObject(wrappedValue: s)
-        _scheduler = StateObject(wrappedValue: BreakScheduler(settings: s))
+        Shared.settings = s
+        Shared.scheduler = BreakScheduler(settings: s)
         // NOTE: no NSApp access here — it is nil during App struct init.
         // Dock-less menu-bar behavior comes from LSUIElement in Info.plist,
         // enforced again in AppDelegate on launch.
     }
 
     var body: some Scene {
-        MenuBarExtra {
-            MenuBarView()
-                .environmentObject(scheduler)
-                .environmentObject(settings)
-        } label: {
-            MenuBarLabel()
-                .environmentObject(scheduler)
-        }
-        .menuBarExtraStyle(.window)
+        // The menu-bar item is a classic NSStatusItem owned by the app
+        // delegate (see StatusBarController) — this bare Settings scene
+        // just keeps the accessory app legal without adding windows.
+        Settings { EmptyView() }
     }
 }
 
+/// Shared engine, created once in App.init (after the UI-testing reset)
+/// and consumed by the AppDelegate-owned status item.
+enum Shared {
+    static var settings: SettingsStore!
+    static var scheduler: BreakScheduler!
+}
+
 /// Compact menu-bar label: eye icon + live countdown.
-/// Uses Label (not a bare HStack) so the symbol stays optically centered
-/// on the countdown text instead of drifting off-baseline.
+/// Hosted in a real NSHostingView inside the status-item button (see
+/// StatusBarController), so the centered HStack lands the eye on the
+/// digits' optical center with no nudges — verified from captures
+/// (both ink centers row 15). Do NOT add .offset here; the earlier
+/// misalignment came from MenuBarExtra's button layout, not this stack.
 struct MenuBarLabel: View {
     @EnvironmentObject var scheduler: BreakScheduler
     var body: some View {
@@ -113,16 +117,81 @@ struct MenuBarLabel: View {
     }
 
     private func statusLabel(icon: String, text: String) -> some View {
-        Label {
-            Text(text).monospacedDigit()
-        } icon: {
+        HStack(alignment: .center, spacing: 4) {
             Image(systemName: icon)
+                .font(.system(size: 13))
+            Text(text)
+                .font(.system(size: 13))
+                .monospacedDigit()
+        }
+    }
+}
+
+/// Classic NSStatusItem + NSPopover in place of MenuBarExtra.
+///
+/// Why not MenuBarExtra: its label is decomposed into an NSStatusBarButton
+/// image + title, so view-level layout (.font size, .offset,
+/// .alignmentGuide) is silently discarded — verified with a 26pt-font
+/// build that rendered at system size. A real NSHostingView inside the
+/// button honors layout, so the eye/countdown pair can be pixel-aligned.
+final class StatusBarController: NSObject {
+    private var item: NSStatusItem?
+    private var labelHost: NSView?
+    private let popover = NSPopover()
+    private var tick: AnyCancellable?
+
+    func setup(scheduler: BreakScheduler, settings: SettingsStore) {
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        self.item = item
+
+        let host = NSHostingView(rootView: MenuBarLabel().environmentObject(scheduler))
+        host.translatesAutoresizingMaskIntoConstraints = false
+        self.labelHost = host
+        if let button = item.button {
+            button.addSubview(host)
+            NSLayoutConstraint.activate([
+                host.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+                host.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            ])
+            button.action = #selector(togglePopover(_:))
+            button.target = self
+        }
+
+        popover.contentViewController = NSHostingController(
+            rootView: MenuBarView()
+                .environmentObject(scheduler)
+                .environmentObject(settings))
+        popover.behavior = .transient
+
+        // Icon swaps (eye/pause/cup) change the label width — track it.
+        // (The countdown itself is monospaced, so per-second ticks are free.)
+        tick = scheduler.objectWillChange.sink { [weak self] _ in
+            DispatchQueue.main.async { self?.syncLength() }
+        }
+        syncLength()
+    }
+
+    private func syncLength() {
+        guard let item, let host = labelHost else { return }
+        let w = max(24, host.fittingSize.width)
+        if abs(item.length - w) > 0.5 { item.length = w }
+    }
+
+    @objc private func togglePopover(_ sender: Any?) {
+        guard let button = item?.button else { return }
+        if popover.isShown {
+            popover.performClose(sender)
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
     }
 }
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let bar = StatusBarController()
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Dock-less menu-bar utility app, like the original.
         NSApp.setActivationPolicy(.accessory)
+        bar.setup(scheduler: Shared.scheduler, settings: Shared.settings)
     }
 }
