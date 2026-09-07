@@ -49,6 +49,7 @@ There is no linter/formatter configured in this repo.
 - `Sources/LookAround/SettingsStore.swift` — `ObservableObject` settings + JSON persistence
 - `Sources/LookAround/BreakScheduler.swift` — the core timer state machine
 - `Sources/LookAround/ActivityProbe.swift`, `SmartPause.swift` — idle/fullscreen detection and pause-rule evaluation (permission-free)
+- `Sources/LookAround/UpdateChecker.swift` — checks GitHub Releases for a newer version (detect + link out only, no self-update — see `packaging/homebrew/README.md` on why the app stays unsigned-forever)
 - `Sources/LookAround/WindowManager.swift`, `BreakViews.swift` — break overlay, pre-break and floating-countdown windows/views
 - `Sources/LookAround/MenuBarView.swift`, `SettingsView.swift`, `SettingsPages.swift`, `SettingsPages2.swift` — menu-bar dropdown and tabbed settings UI
 - `Sources/LookAround/Theme.swift` — AppTheme / Liquid Glass styling

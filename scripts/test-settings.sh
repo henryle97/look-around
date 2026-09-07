@@ -141,6 +141,12 @@ for slug in "${SUB_PAGES[@]}"; do
 done
 echo "✓ all $(( ${#SIDEBAR_PAGES[@]} + ${#SUB_PAGES[@]} )) reachable pages opened"
 
+log "checking the About page's update-check UI (no network call — that's user-triggered)…"
+goto_page about
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.about.updateStatus)" "Last checked: never" "update status before checking"
+wait_for "settings.about.checkForUpdatesButton" || { echo "✗ FAIL: Check for Updates button missing"; exit 1; }
+echo "✓ Check for Updates button present"
+
 log "reaching the planned-break editor…"
 goto_subpage plannedBreaks || exit 1
 "$AX" click "$BUNDLE_ID" settings.plannedBreaks.addButton >/dev/null
@@ -149,6 +155,13 @@ shot "$(printf '%02d-page-editPlanned' "$i")"
 echo "✓ editor page opened"
 
 log "editing one control per feature area…"
+goto_page general
+autocheck_before="$("$AX" read "$BUNDLE_ID" settings.general.autoCheckUpdates)"
+"$AX" click "$BUNDLE_ID" settings.general.autoCheckUpdates >/dev/null
+sleep 0.2
+autocheck_after="$("$AX" read "$BUNDLE_ID" settings.general.autoCheckUpdates)"
+assert_ne "$autocheck_after" "$autocheck_before" "auto-check-for-updates toggle"
+
 goto_page screenBreaks
 snooze_before="$("$AX" read "$BUNDLE_ID" settings.screenBreaks.snoozesPerDay.value)"
 "$AX" increment "$BUNDLE_ID" settings.screenBreaks.snoozesPerDay 2 >/dev/null
@@ -210,6 +223,8 @@ log "waiting for autosave, restarting, re-verifying…"
 sleep 0.6
 launch_app --ui-testing
 open_settings || exit 1
+goto_page general
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.general.autoCheckUpdates)" "$autocheck_after" "auto-check-for-updates toggle persists"
 goto_page screenBreaks
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.snoozesPerDay.value)" "$snooze_after" "snoozes persist"
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.maxPerBreak.value)" "$maxperbreak_after" "max snoozes per break persists"

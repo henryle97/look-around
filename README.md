@@ -108,6 +108,7 @@ Sources/LookAround/
   BreakScheduler.swift  1-second timer state machine (breaks, snooze, planned, cooldown, wellness)
   ActivityProbe.swift   idle time, frontmost/fullscreen detection (no permissions)
   SmartPause.swift      rule evaluation → human-readable pause reason
+  UpdateChecker.swift   checks GitHub Releases for a newer version (detect + link out, no self-update)
   WindowManager.swift   fullscreen overlay + heads-up + cursor-following countdown windows
   BreakViews.swift      overlay, pre-break and floating-countdown views
   MenuBarView.swift     menu-bar dropdown
