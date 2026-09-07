@@ -82,6 +82,11 @@ extension View {
         reduceTransparency: Bool
     ) -> some View {
         if material == .liquidGlass && !reduceTransparency {
+            // `glassEffect` only exists in the macOS 26 SDK (Swift 6.2+
+            // toolchain); `#if compiler` keeps this compiling on older
+            // toolchains, where `#available(macOS 26, *)` would still
+            // reference a symbol the SDK doesn't declare at all.
+            #if compiler(>=6.2)
             if #available(macOS 26, *) {
                 switch shape {
                 case .capsule:
@@ -97,6 +102,14 @@ extension View {
                     self.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: radius))
                 }
             }
+            #else
+            switch shape {
+            case .capsule:
+                self.background(.ultraThinMaterial, in: Capsule())
+            case .rounded(let radius):
+                self.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: radius))
+            }
+            #endif
         } else if reduceTransparency {
             // Opaque fallback: solid dark pill/card so overlay text stays
             // readable with no translucency. The overlay stays dark cinematic
@@ -125,11 +138,15 @@ extension View {
         reduceTransparency: Bool
     ) -> some View {
         if material == .liquidGlass && !reduceTransparency {
+            #if compiler(>=6.2)
             if #available(macOS 26, *) {
                 self.glassEffect(.regular, in: Capsule())
             } else {
                 self.background(Color.black.opacity(0.55), in: Capsule())
             }
+            #else
+            self.background(Color.black.opacity(0.55), in: Capsule())
+            #endif
         } else if reduceTransparency {
             self.background(Color(red: 0.12, green: 0.12, blue: 0.14), in: Capsule())
         } else {
@@ -145,11 +162,15 @@ extension View {
         reduceTransparency: Bool
     ) -> some View {
         if material == .liquidGlass && !reduceTransparency {
+            #if compiler(>=6.2)
             if #available(macOS 26, *) {
                 self.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
             } else {
                 self.background(Color(red: 0.13, green: 0.14, blue: 0.17), in: RoundedRectangle(cornerRadius: 14))
             }
+            #else
+            self.background(Color(red: 0.13, green: 0.14, blue: 0.17), in: RoundedRectangle(cornerRadius: 14))
+            #endif
         } else {
             self.background(Color(red: 0.13, green: 0.14, blue: 0.17), in: RoundedRectangle(cornerRadius: 14))
         }
