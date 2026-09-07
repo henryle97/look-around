@@ -188,6 +188,25 @@ final class BreakScheduler: ObservableObject {
         preBreakVisible = false
     }
 
+    // MARK: - menu-bar hero (read-only, for MenuBarView)
+
+    /// Next regular-break kind, exposed so the popup hero can label it.
+    var upcomingKind: BreakKind { nextBreakKind() }
+
+    var upcomingDuration: TimeInterval {
+        switch upcomingKind {
+        case .short: return settings.breaks.shortBreakDuration
+        case .long: return settings.breaks.longBreakDuration
+        case .planned: return settings.breaks.shortBreakDuration
+        }
+    }
+
+    /// Focus time elapsed in the current work stretch.
+    var focusTimeElapsed: TimeInterval {
+        guard let t = timeUntilNextBreak else { return 0 }
+        return max(0, settings.breaks.workDuration - t)
+    }
+
     // MARK: - tick
 
     private func tick() {
