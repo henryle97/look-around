@@ -5,3 +5,4 @@ LookAround.app/
 *.d
 .DS_Store
 tools/axdrive/axdrive
+data/
