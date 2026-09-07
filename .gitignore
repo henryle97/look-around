@@ -1,0 +1,6 @@
+.build/
+DerivedData/
+LookAround.app/
+*.o
+*.d
+.DS_Store
