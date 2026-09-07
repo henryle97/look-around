@@ -163,6 +163,16 @@ struct ScreenBreaksPage: View {
                 ChipStepper(value: $settings.breaks.snoozesPerDay, range: 0...20, step: 1,
                             id: "settings.screenBreaks.snoozesPerDay") { "\($0)" }
             }
+            CardDivider()
+            SettingRow(label: "Snoozes allowed per break") {
+                ChipStepper(value: $settings.breaks.maxSnoozesPerBreak, range: 0...10, step: 1,
+                            id: "settings.screenBreaks.maxPerBreak") { $0 == 0 ? "No limit" : "\($0)" }
+            }
+            CardDivider()
+            SettingRow(label: "Pauses allowed per day") {
+                ChipStepper(value: $settings.breaks.pausesPerDay, range: 0...20, step: 1,
+                            id: "settings.screenBreaks.pausesPerDay") { "\($0)" }
+            }
         }
         SectionTitle("More")
         Card {

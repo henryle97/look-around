@@ -155,6 +155,16 @@ snooze_before="$("$AX" read "$BUNDLE_ID" settings.screenBreaks.snoozesPerDay.val
 snooze_after="$("$AX" read "$BUNDLE_ID" settings.screenBreaks.snoozesPerDay.value)"
 assert_ne "$snooze_after" "$snooze_before" "snoozes per day"
 
+maxperbreak_before="$("$AX" read "$BUNDLE_ID" settings.screenBreaks.maxPerBreak.value)"
+"$AX" increment "$BUNDLE_ID" settings.screenBreaks.maxPerBreak 2 >/dev/null
+maxperbreak_after="$("$AX" read "$BUNDLE_ID" settings.screenBreaks.maxPerBreak.value)"
+assert_ne "$maxperbreak_after" "$maxperbreak_before" "max snoozes per break"
+
+pausesperday_before="$("$AX" read "$BUNDLE_ID" settings.screenBreaks.pausesPerDay.value)"
+"$AX" increment "$BUNDLE_ID" settings.screenBreaks.pausesPerDay 2 >/dev/null
+pausesperday_after="$("$AX" read "$BUNDLE_ID" settings.screenBreaks.pausesPerDay.value)"
+assert_ne "$pausesperday_after" "$pausesperday_before" "pauses per day"
+
 goto_subpage longBreaks
 long_before="$("$AX" read "$BUNDLE_ID" settings.longBreaks.duration.value)"
 "$AX" increment "$BUNDLE_ID" settings.longBreaks.duration 1 >/dev/null
@@ -202,6 +212,8 @@ launch_app --ui-testing
 open_settings || exit 1
 goto_page screenBreaks
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.snoozesPerDay.value)" "$snooze_after" "snoozes persist"
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.maxPerBreak.value)" "$maxperbreak_after" "max snoozes per break persists"
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.screenBreaks.pausesPerDay.value)" "$pausesperday_after" "pauses per day persists"
 goto_subpage longBreaks
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.longBreaks.duration.value)" "$long_after" "long duration persists"
 goto_page smartPause

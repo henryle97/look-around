@@ -260,17 +260,21 @@ struct PreBreakView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .accessibilityIdentifier("prebreak.startNowButton")
-                Button("+1m") { scheduler.snoozePreBreak(by: 60) }
-                Button("+5m") { scheduler.snoozePreBreak(by: 5*60) }
-                Button("+15m") { scheduler.snoozePreBreak(by: 15*60) }
-                Button("Skip") { scheduler.advanceSkip() }
-                    .accessibilityIdentifier("prebreak.skipButton")
+                // Snooze + Skip all draw from the same budget, so they share
+                // one disabled state — "Start now" never needs it.
+                Group {
+                    Button("+1m") { scheduler.snoozePreBreak(by: 60) }
+                    Button("+5m") { scheduler.snoozePreBreak(by: 5*60) }
+                    Button("+15m") { scheduler.snoozePreBreak(by: 15*60) }
+                    Button("Skip") { scheduler.advanceSkip() }
+                        .accessibilityIdentifier("prebreak.skipButton")
+                }
+                .controlSize(.small)
+                .buttonStyle(.bordered)
+                .disabled(scheduler.snoozesLeft <= 0)
             }
-            .controlSize(.small)
-            .buttonStyle(.bordered)
-            .disabled(scheduler.snoozesLeft <= 0)
             if scheduler.snoozesLeft <= 0 {
-                Text("No snoozes left today")
+                Text("No snoozes left")
                     .font(.caption).foregroundColor(.orange)
             }
         }
