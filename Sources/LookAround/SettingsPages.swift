@@ -20,12 +20,49 @@ struct GeneralPage: View {
                     .onChange(of: launchAtLogin) { on in setLaunchAtLogin(on) }
             }
             CardDivider()
-            SettingRow(label: "Appearance") {
-                Text("Follows system").foregroundColor(.white.opacity(0.55))
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Appearance")
+                        .font(.system(size: 15))
+                        .foregroundColor(.laPrimaryText)
+                    Spacer()
+                    // Segmented theme control: each option is a leaf button
+                    // for axdrive (base id prefix + .value label). NOTE: no
+                    // identifier on the HStack itself — stamping the container
+                    // overrides the children's ids in practice.
+                    HStack(spacing: 0) {
+                        ForEach(AppearanceSettings.AppTheme.allCases) { theme in
+                            Button {
+                                settings.appearance.appTheme = theme
+                            } label: {
+                                Text(theme.label)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(settings.appearance.appTheme == theme
+                                        ? .white : .laPrimaryText.opacity(0.6))
+                                    .padding(.horizontal, 14).padding(.vertical, 6)
+                                    .background(settings.appearance.appTheme == theme
+                                        ? Color.laBlue : Color.clear,
+                                        in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("settings.general.appTheme.\(theme.rawValue)")
+                        }
+                    }
+                    .padding(3)
+                    .background(Color.laPrimaryText.opacity(0.08), in: Capsule())
+                }
+                HStack {
+                    Spacer()
+                    Text(settings.appearance.appTheme.label)
+                        .font(.system(size: 13))
+                        .foregroundColor(.laPrimaryText.opacity(0.55))
+                        .accessibilityIdentifier("settings.general.appTheme.value")
+                }
             }
+            .padding(.vertical, 10)
             CardDivider()
             SettingRow(label: "Version") {
-                Text("0.1.0").foregroundColor(.white.opacity(0.55))
+                Text("0.1.0").foregroundColor(.laPrimaryText.opacity(0.55))
             }
             if let e = launchError {
                 Text(e).font(.caption).foregroundColor(.orange)
@@ -73,15 +110,15 @@ struct ScreenBreaksPage: View {
         Card {
             // Show breaks after [preset ↕] [H][M] of focused screen time
             HStack {
-                Text("Show breaks after").font(.system(size: 15)).foregroundColor(.white)
+                Text("Show breaks after").font(.system(size: 15)).foregroundColor(.laPrimaryText)
                 Spacer()
-                Text(presetName).font(.system(size: 14)).foregroundColor(.white.opacity(0.8))
+                Text(presetName).font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.8))
                 Stepper("", value: presetIndex, in: 0...(breakPresets.count - 1))
                     .labelsHidden()
                     .accessibilityIdentifier("settings.screenBreaks.workIntervalPreset")
                 hmBox("H", hours: workHoursBinding)
                 hmBox("M", hours: workMinutesBinding)
-                Text("of focused screen time").font(.system(size: 14)).foregroundColor(.white.opacity(0.8))
+                Text("of focused screen time").font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.8))
             }
             .padding(.vertical, 10)
             CardDivider()
@@ -187,13 +224,13 @@ struct ScreenBreaksPage: View {
 
     private func hmBox(_ unit: String, hours: Binding<Int>) -> some View {
         HStack(spacing: 4) {
-            Text("\(hours.wrappedValue)").font(.system(size: 14, weight: .medium)).foregroundColor(.white)
+            Text("\(hours.wrappedValue)").font(.system(size: 14, weight: .medium)).foregroundColor(.laPrimaryText)
                 .frame(minWidth: 22)
-            Text(unit).font(.system(size: 13)).foregroundColor(.white.opacity(0.5))
+            Text(unit).font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.5))
             Stepper("", value: hours, in: 0...(unit == "H" ? 8 : 59)).labelsHidden()
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color.laPrimaryText.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var longSummary: String {
@@ -221,14 +258,14 @@ struct ScreenBreaksPage: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.white)
                 }
-                Text(title).font(.system(size: 15)).foregroundColor(.white)
+                Text(title).font(.system(size: 15)).foregroundColor(.laPrimaryText)
                 Spacer()
                 if !summary.isEmpty {
-                    Text(summary).font(.system(size: 14)).foregroundColor(.white.opacity(0.6))
+                    Text(summary).font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.6))
                 }
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.laPrimaryText.opacity(0.35))
             }
             .padding(.vertical, 10)
             .contentShape(Rectangle())
@@ -263,10 +300,10 @@ struct ScreenBreaksPage: View {
                     .stroke(selected ? Color.laBlue : Color.clear, lineWidth: 3))
                 Text(label)
                     .font(.system(size: 15, weight: selected ? .bold : .regular))
-                    .foregroundColor(selected ? .white : .white.opacity(0.8))
+                    .foregroundColor(selected ? .laPrimaryText : .laPrimaryText.opacity(0.8))
                 Text(sub)
                     .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(.laPrimaryText.opacity(0.5))
             }
         }
         .buttonStyle(.plain)
@@ -304,7 +341,7 @@ struct LongBreaksPage: View {
             }
         }
         Text("Long breaks replace the regular break when they are due and reset the short-break count.")
-            .font(.caption).foregroundColor(.white.opacity(0.5))
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
     }
 }
 
@@ -324,7 +361,7 @@ struct OfficeHoursPage: View {
             CardDivider()
             SettingRow(label: "Scheduling preference") {
                 Text("Same schedule for all selected days")
-                    .font(.system(size: 14)).foregroundColor(.white.opacity(0.8))
+                    .font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.8))
             }
         }
         SectionTitle("Schedule")
@@ -336,26 +373,26 @@ struct OfficeHoursPage: View {
             SettingRow(label: "Active hours") {
                 HStack {
                     timeChip($settings.officeHours.startMinutes)
-                    Text("to").foregroundColor(.white.opacity(0.6))
+                    Text("to").foregroundColor(.laPrimaryText.opacity(0.6))
                     timeChip($settings.officeHours.endMinutes)
                 }
             }
         }
         Text("Planned breaks run even outside office hours.")
-            .font(.caption).foregroundColor(.white.opacity(0.5))
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
     }
     private func timeChip(_ minutes: Binding<Int>) -> some View {
         HStack(spacing: 6) {
             Text(hhmm(minutes.wrappedValue))
                 .font(.system(size: 14, weight: .medium).monospacedDigit())
-                .foregroundColor(.white)
+                .foregroundColor(.laPrimaryText)
             Stepper("", value: Binding(
                 get: { minutes.wrappedValue },
                 set: { minutes.wrappedValue = ((($0 % 1440) + 1440) % 1440) }
             ), in: 0...2879, step: 30).labelsHidden()
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color.laPrimaryText.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -367,6 +404,48 @@ struct CustomizeScreenPage: View {
     var body: some View {
         PageHeader(icon: "leaf.fill", title: "Screen Breaks", color: .laPink)
         BackButton(route: $route)
+        SectionTitle("Material")
+        Card {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Break surface")
+                        .font(.system(size: 15))
+                        .foregroundColor(.laPrimaryText)
+                    Spacer()
+                    HStack(spacing: 0) {
+                        ForEach(AppearanceSettings.BreakMaterial.allCases) { material in
+                            Button {
+                                settings.appearance.breakMaterial = material
+                            } label: {
+                                Text(material.label)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(settings.appearance.breakMaterial == material
+                                        ? .white : .laPrimaryText.opacity(0.6))
+                                    .padding(.horizontal, 14).padding(.vertical, 6)
+                                    .background(settings.appearance.breakMaterial == material
+                                        ? Color.laBlue : Color.clear,
+                                        in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("settings.customizeScreen.material.\(material.rawValue)")
+                        }
+                    }
+                    .padding(3)
+                    .background(Color.laPrimaryText.opacity(0.08), in: Capsule())
+                }
+                HStack {
+                    Spacer()
+                    Text(settings.appearance.breakMaterial.label)
+                        .font(.system(size: 13))
+                        .foregroundColor(.laPrimaryText.opacity(0.55))
+                        .accessibilityIdentifier("settings.customizeScreen.material.value")
+                }
+                Text("Liquid Glass uses the system glass effect on Tahoe and falls back to Frosted on older macOS.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.laPrimaryText.opacity(0.55))
+            }
+            .padding(.vertical, 10)
+        }
         SectionTitle("Background")
         Card {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -391,7 +470,7 @@ struct CustomizeScreenPage: View {
             .padding(.vertical, 10)
         }
         Text("The break screen blurs your wallpaper; the theme tints the frosted backdrop.")
-            .font(.caption).foregroundColor(.white.opacity(0.5))
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
     }
 }
 
@@ -431,15 +510,15 @@ struct CustomMessagesPage: View {
             HStack {
                 Button { messages.wrappedValue.append("") } label: {
                     Image(systemName: "plus").frame(width: 30, height: 30)
-                        .background(Color.white.opacity(0.08), in: Circle())
+                        .background(Color.laPrimaryText.opacity(0.08), in: Circle())
                 }.buttonStyle(.plain)
                 Button { _ = messages.wrappedValue.popLast() } label: {
                     Image(systemName: "minus").frame(width: 30, height: 30)
-                        .background(Color.white.opacity(0.08), in: Circle())
+                        .background(Color.laPrimaryText.opacity(0.08), in: Circle())
                 }.buttonStyle(.plain)
                 Spacer()
                 Text("A random message from this list is shown")
-                    .font(.system(size: 13)).foregroundColor(.white.opacity(0.45))
+                    .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.45))
             }
             .padding(.vertical, 6)
         }
@@ -462,7 +541,7 @@ struct PlannedBreaksPage: View {
         }
         if settings.plannedBreaks.isEmpty {
             Text("No planned breaks yet — add lunch or an afternoon walk.")
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(.laPrimaryText.opacity(0.6))
         }
         Card {
             ForEach($settings.plannedBreaks) { $p in
@@ -471,18 +550,18 @@ struct PlannedBreaksPage: View {
                     HStack(spacing: 12) {
                         Image(systemName: p.icon)
                             .font(.system(size: 16))
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundColor(.laPrimaryText.opacity(0.85))
                             .frame(width: 34, height: 34)
-                            .background(Color.white.opacity(0.08), in: Circle())
+                            .background(Color.laPrimaryText.opacity(0.08), in: Circle())
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(p.name).font(.system(size: 15)).foregroundColor(.white)
+                            Text(p.name).font(.system(size: 15)).foregroundColor(.laPrimaryText)
                             Text("\(p.timeLabel) • \(Int(p.duration / 60)) min • \(dayLetters(p.weekdays))")
-                                .font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                                .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                         }
                         Spacer()
                         Toggle("", isOn: $p.enabled).labelsHidden()
                         Image(systemName: "chevron.right")
-                            .foregroundColor(.white.opacity(0.35))
+                            .foregroundColor(.laPrimaryText.opacity(0.35))
                     }
                     .padding(.vertical, 8)
                     .contentShape(Rectangle())
@@ -491,7 +570,7 @@ struct PlannedBreaksPage: View {
             }
         }
         Text("Planned breaks start at a fixed time, run outside office hours, and never stack with regular breaks.")
-            .font(.caption).foregroundColor(.white.opacity(0.5))
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
     }
     private func dayLetters(_ days: Set<Int>) -> String {
         [2,3,4,5,6,7,1].filter(days.contains).map {
@@ -546,15 +625,15 @@ struct EditPlannedPage: View {
             }
             CardDivider()
             VStack(alignment: .leading, spacing: 10) {
-                Text("Icon").font(.system(size: 15)).foregroundColor(.white)
+                Text("Icon").font(.system(size: 15)).foregroundColor(.laPrimaryText)
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8), spacing: 10) {
                     ForEach(plannedIconChoices, id: \.self) { icon in
                         Button { update { $0.icon = icon } } label: {
                             Image(systemName: icon)
                                 .font(.system(size: 15))
-                                .foregroundColor(.white)
+                                .foregroundColor(read(\.icon) == icon ? .white : .laPrimaryText)
                                 .frame(width: 38, height: 38)
-                                .background(read(\.icon) == icon ? Color.laBlue : Color.white.opacity(0.08),
+                                .background(read(\.icon) == icon ? Color.laBlue : Color.laPrimaryText.opacity(0.08),
                                             in: Circle())
                         }
                         .buttonStyle(.plain)
@@ -569,7 +648,7 @@ struct EditPlannedPage: View {
                 Toggle("", isOn: bind(\.syncToMobile)).labelsHidden()
             }
             Text("When enabled, this planned break will also start and end on paired iPhones and iPads. Push notifications still follow each device's notification settings.")
-                .font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                 .padding(.bottom, 10)
         }
         HStack {

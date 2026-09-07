@@ -34,10 +34,13 @@ enum WallpaperLoader {
 /// like a frosted-glass desktop — with gradient fallback.
 struct BreakBackdrop: View {
     @State private var image: NSImage? = nil
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         ZStack {
-            if let img = image {
+            if let img = image, !reduceTransparency {
                 GeometryReader { geo in
                     Image(nsImage: img)
                         .resizable()
@@ -45,17 +48,17 @@ struct BreakBackdrop: View {
                         .frame(width: geo.size.width, height: geo.size.height)
                         .clipped()
                         .blur(radius: 60)
-                        .scaleEffect(1.12)
-                        .saturation(1.1)
+                        .scaleEffect(reduceMotion ? 1.0 : 1.12)
+                        .saturation(reduceMotion ? 1.0 : 1.1)
                 }
             } else {
                 FauxWallpaper()
             }
             // veil keeps white text readable on bright wallpapers
-            Color.black.opacity(0.24)
+            Color.black.opacity(contrast == .increased ? 0.42 : 0.24)
             // vignette for depth
             RadialGradient(
-                colors: [.clear, .clear, Color.black.opacity(0.38)],
+                colors: [.clear, .clear, Color.black.opacity(contrast == .increased ? 0.55 : 0.38)],
                 center: .center,
                 startRadius: 100, endRadius: 900)
         }
@@ -101,6 +104,9 @@ struct GlassPillButton: View {
     var disabled: Bool = false
     var axID: String? = nil
     let action: () -> Void
+    @EnvironmentObject var settings: SettingsStore
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
@@ -111,8 +117,10 @@ struct GlassPillButton: View {
             }
             .foregroundColor(.white)
             .padding(.horizontal, 22).padding(.vertical, 12)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(Capsule().stroke(Color.white.opacity(0.4), lineWidth: 1))
+            .glassBackground(.capsule,
+                             material: settings.appearance.breakMaterial,
+                             reduceTransparency: reduceTransparency)
+            .overlay(Capsule().stroke(Color.white.opacity(contrast == .increased ? 0.7 : 0.4), lineWidth: 1))
             .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
         }
         .buttonStyle(.plain)
@@ -236,6 +244,9 @@ struct BreakOverlayView: View {
 
 struct PreBreakView: View {
     @EnvironmentObject var scheduler: BreakScheduler
+    @EnvironmentObject var settings: SettingsStore
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Almost time. Your eyes will appreciate this.")
@@ -265,8 +276,9 @@ struct PreBreakView: View {
         }
         .padding(16)
         .frame(width: 360)
-        .background(Color(red: 0.13, green: 0.14, blue: 0.17), in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.12), lineWidth: 1))
+        .headsUpCardBackground(material: settings.appearance.breakMaterial,
+                               reduceTransparency: reduceTransparency)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(contrast == .increased ? 0.3 : 0.12), lineWidth: 1))
     }
 }
 
@@ -291,6 +303,9 @@ struct PillIcon: View {
 
 struct FloatingCountdownView: View {
     @EnvironmentObject var scheduler: BreakScheduler
+    @EnvironmentObject var settings: SettingsStore
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     var body: some View {
         HStack(spacing: 10) {
             PillIcon(systemImage: "leaf.fill")
@@ -300,13 +315,17 @@ struct FloatingCountdownView: View {
                 .foregroundColor(.white)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Color.black.opacity(0.55), in: Capsule())
-        .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1))
+        .floatingPillBackground(material: settings.appearance.breakMaterial,
+                                reduceTransparency: reduceTransparency)
+        .overlay(Capsule().stroke(Color.white.opacity(contrast == .increased ? 0.4 : 0.18), lineWidth: 1))
     }
 }
 
 struct OvertimePillView: View {
     @EnvironmentObject var scheduler: BreakScheduler
+    @EnvironmentObject var settings: SettingsStore
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     var body: some View {
         HStack(spacing: 10) {
             PillIcon(systemImage: "bolt.fill")
@@ -321,7 +340,8 @@ struct OvertimePillView: View {
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Color.black.opacity(0.55), in: Capsule())
-        .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1))
+        .floatingPillBackground(material: settings.appearance.breakMaterial,
+                                reduceTransparency: reduceTransparency)
+        .overlay(Capsule().stroke(Color.white.opacity(contrast == .increased ? 0.4 : 0.18), lineWidth: 1))
     }
 }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Menu-bar popup: Now / Stats (dark panel)
+// MARK: - Menu-bar popup: Now / Stats (adaptive panel)
 
 struct MenuBarView: View {
     @EnvironmentObject var scheduler: BreakScheduler
@@ -14,7 +14,7 @@ struct MenuBarView: View {
             // top bar: calendar • segmented • gear
             HStack {
                 Image(systemName: "calendar")
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(.laPrimaryText.opacity(0.7))
                 Spacer()
                 HStack(spacing: 0) {
                     segButton("Now", .now)
@@ -23,7 +23,7 @@ struct MenuBarView: View {
                         .accessibilityIdentifier("menubar.tab.stats")
                 }
                 .padding(3)
-                .background(Color.white.opacity(0.08), in: Capsule())
+                .background(Color.laPrimaryText.opacity(0.08), in: Capsule())
                 Spacer()
                 Button {
                     WindowManager.shared.openSettings(scheduler: scheduler, settings: settings)
@@ -34,7 +34,7 @@ struct MenuBarView: View {
                     DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) }
                 } label: {
                     Image(systemName: "gearshape")
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(.laPrimaryText.opacity(0.7))
                 }
                 .buttonStyle(.plain)
                 .help("Open Settings")
@@ -45,25 +45,26 @@ struct MenuBarView: View {
         }
         .padding(14)
         .frame(width: 370)
-        .background(Color(red: 0.11, green: 0.12, blue: 0.17))
+        .background(Color.laPopup)
+        .preferredColorScheme(settings.appearance.appTheme.colorScheme)
     }
 
-    /// Menu labels ignore the surrounding `.tint(.white)` and render dim —
+    /// Menu labels ignore the surrounding `.tint(.laPrimaryText)` and render dim —
     /// paint them explicitly so menus read like the buttons next to them.
     private func menuLabel(_ title: String) -> some View {
         HStack(spacing: 4) {
-            Text(title).foregroundColor(.white)
+            Text(title).foregroundColor(.laPrimaryText)
             Image(systemName: "chevron.down")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(.laPrimaryText.opacity(0.7))
         }
     }
 
     private func segButton(_ title: String, _ t: PopupTab) -> some View {        Button(title) { tab = t }
             .font(.system(size: 13, weight: .semibold))
-            .foregroundColor(tab == t ? .white : .white.opacity(0.55))
+            .foregroundColor(tab == t ? .laPrimaryText : .laPrimaryText.opacity(0.55))
             .padding(.horizontal, 18).padding(.vertical, 5)
-            .background(tab == t ? Color.white.opacity(0.16) : Color.clear, in: Capsule())
+            .background(tab == t ? Color.laPrimaryText.opacity(0.16) : Color.clear, in: Capsule())
             .buttonStyle(.plain)
     }
 
@@ -106,42 +107,42 @@ struct MenuBarView: View {
                 .accessibilityIdentifier("menubar.pauseMenu")
                 Button("Reset cycle") { scheduler.resetCycle() }
             }
-            Divider().background(Color.white.opacity(0.15))
+            Divider().background(Color.laPrimaryText.opacity(0.15))
             Text("Taken \(settings.stats.shortBreaksTaken + settings.stats.longBreaksTaken + settings.stats.plannedBreaksTaken) • Skipped \(settings.stats.breaksSkipped) • Postponed \(settings.stats.breaksPostponed)")
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(.laPrimaryText.opacity(0.5))
                 .accessibilityIdentifier("menubar.statsLine")
             Button("Quit LookAround") { NSApp.terminate(nil) }
                 .font(.caption)
                 .accessibilityIdentifier("menubar.quitButton")
         }
         .buttonStyle(.bordered)
-        .tint(.white)
+        .tint(.laPrimaryText)
     }
 
     private var statusCard: some View {
         VStack(alignment: .leading, spacing: 4) {
             if scheduler.isOnBreak {
                 Label("On break — \(TimeFmt.mmss(scheduler.session?.remaining ?? 0))", systemImage: "cup.and.saucer.fill")
-                    .font(.headline).foregroundColor(.white)
+                    .font(.headline).foregroundColor(.laPrimaryText)
                 Text(scheduler.session?.title ?? "")
-                    .font(.caption).foregroundColor(.white.opacity(0.6))
+                    .font(.caption).foregroundColor(.laPrimaryText.opacity(0.6))
             } else if scheduler.manuallyPaused {
                 Label("Paused — \(TimeFmt.hms(scheduler.pauseRemaining))", systemImage: "pause.circle")
-                    .font(.headline).foregroundColor(.white)
+                    .font(.headline).foregroundColor(.laPrimaryText)
             } else if let r = scheduler.smartPauseReason {
                 Label("Waiting — \(r)", systemImage: "moon.zzz")
-                    .font(.headline).foregroundColor(.white)
+                    .font(.headline).foregroundColor(.laPrimaryText)
                 if let t = scheduler.timeUntilNextBreak {
                     Text("Next break in \(TimeFmt.hms(t)) once you're free")
-                        .font(.caption).foregroundColor(.white.opacity(0.6))
+                        .font(.caption).foregroundColor(.laPrimaryText.opacity(0.6))
                 }
             } else if scheduler.cooldownRemaining > 1 {
                 Label("Cooling down — \(Int(scheduler.cooldownRemaining))s", systemImage: "timer")
-                    .foregroundColor(.white)
+                    .foregroundColor(.laPrimaryText)
             } else if let t = scheduler.timeUntilNextBreak {
                 Label("Next break in \(TimeFmt.hms(t))", systemImage: "eye.fill")
-                    .font(.headline).foregroundColor(.white)
+                    .font(.headline).foregroundColor(.laPrimaryText)
                 if scheduler.preBreakVisible || scheduler.countdownVisible {
                     Text("Heads up — break starting soon")
                         .font(.caption).foregroundColor(.orange)
@@ -151,19 +152,19 @@ struct MenuBarView: View {
                 }
             } else {
                 Label("Outside office hours", systemImage: "calendar")
-                    .font(.headline).foregroundColor(.white)
+                    .font(.headline).foregroundColor(.laPrimaryText)
             }
             if let n = scheduler.nextPlanned {
                 Text("Planned: \(n.name) at \(n.timeLabel)")
-                    .font(.caption).foregroundColor(.white.opacity(0.6))
+                    .font(.caption).foregroundColor(.laPrimaryText.opacity(0.6))
             }
             if let w = scheduler.lastWellnessMessage {
-                Text(w).font(.caption).foregroundColor(.white.opacity(0.6))
+                Text(w).font(.caption).foregroundColor(.laPrimaryText.opacity(0.6))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.laPrimaryText.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: Stats
@@ -171,18 +172,18 @@ struct MenuBarView: View {
         VStack(spacing: 12) {
             // day pager pill
             HStack {
-                Image(systemName: "chevron.left").foregroundColor(.white.opacity(0.4))
-                Text("Today's Screen Score").font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
-                Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.4))
+                Image(systemName: "chevron.left").foregroundColor(.laPrimaryText.opacity(0.4))
+                Text("Today's Screen Score").font(.system(size: 14, weight: .semibold)).foregroundColor(.laPrimaryText)
+                Image(systemName: "chevron.right").foregroundColor(.laPrimaryText.opacity(0.4))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(Color.white.opacity(0.06), in: Capsule())
+            .background(Color.laPrimaryText.opacity(0.06), in: Capsule())
 
             // score ring
             ZStack {
                 Circle()
-                    .stroke(Color.white.opacity(0.12), style: StrokeStyle(lineWidth: 10, dash: [2, 5]))
+                    .stroke(Color.laPrimaryText.opacity(0.12), style: StrokeStyle(lineWidth: 10, dash: [2, 5]))
                     .frame(width: 130, height: 130)
                 Circle()
                     .trim(from: 0, to: max(0.02, scoreFraction * 0.75))
@@ -194,17 +195,17 @@ struct MenuBarView: View {
                     .frame(width: 130, height: 130)
                 Text("\(score)")
                     .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(.laPrimaryText)
             }
             .padding(.top, 4)
 
             Text(scoreMessage)
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(.laPrimaryText.opacity(0.65))
                 .multilineTextAlignment(.center)
                 .padding(10)
                 .frame(maxWidth: .infinity)
-                .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+                .background(Color.laPrimaryText.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
 
             statsCard(title: "Break Stats", icon: "leaf.fill", columns: true) {
                 statRow(dot: .pink, label: "App breaks",
@@ -260,30 +261,30 @@ struct MenuBarView: View {
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.white)
                 }
-                Text(title).font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                Text(title).font(.system(size: 14, weight: .semibold)).foregroundColor(.laPrimaryText)
                 Spacer()
                 if columns {
-                    Text("Total").font(.caption).foregroundColor(.white.opacity(0.45)).frame(width: 40)
-                    Text("Duration").font(.caption).foregroundColor(.white.opacity(0.45)).frame(width: 64, alignment: .trailing)
+                    Text("Total").font(.caption).foregroundColor(.laPrimaryText.opacity(0.45)).frame(width: 40)
+                    Text("Duration").font(.caption).foregroundColor(.laPrimaryText.opacity(0.45)).frame(width: 64, alignment: .trailing)
                 } else {
-                    Text("Duration").font(.caption).foregroundColor(.white.opacity(0.45))
+                    Text("Duration").font(.caption).foregroundColor(.laPrimaryText.opacity(0.45))
                 }
             }
             content()
         }
         .padding(12)
-        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.laPrimaryText.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
     }
 
     private func statRow(dot: Color, label: String, total: String, duration: String) -> some View {
         HStack {
             Circle().fill(dot).frame(width: 9, height: 9)
-            Text(label).font(.system(size: 13)).foregroundColor(.white.opacity(0.9))
+            Text(label).font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.9))
             Spacer()
             if !total.isEmpty {
-                Text(total).font(.system(size: 13)).foregroundColor(.white.opacity(0.9)).frame(width: 40)
+                Text(total).font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.9)).frame(width: 40)
             }
-            Text(duration).font(.system(size: 13)).foregroundColor(.white.opacity(0.9))
+            Text(duration).font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.9))
                 .frame(width: 64, alignment: .trailing)
         }
     }

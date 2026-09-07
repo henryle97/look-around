@@ -133,6 +133,24 @@ struct WellnessSettings: Codable, Equatable {
 
 // MARK: - Appearance / customization
 struct AppearanceSettings: Codable, Equatable {
+    enum AppTheme: String, Codable, CaseIterable, Identifiable {
+        case system, dark, light
+        var id: String { rawValue }
+        var label: String { rawValue.capitalized }
+    }
+
+    enum BreakMaterial: String, Codable, CaseIterable, Identifiable {
+        case frosted
+        case liquidGlass
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .frosted: return "Frosted"
+            case .liquidGlass: return "Liquid Glass"
+            }
+        }
+    }
+
     var shortMessages: [String] = [
         "Eyes to the horizon",
         "Breathe, relax, and come back",
@@ -150,11 +168,61 @@ struct AppearanceSettings: Codable, Equatable {
     var soundName: SoundName = .chime
     var soundVolume: Double = 0.7
     var customImagePath: String = ""
+    var appTheme: AppTheme = .system
+    var breakMaterial: BreakMaterial = .frosted
 
     enum SoundName: String, Codable, CaseIterable, Identifiable {
         case none, chime, rain, forest, waves
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
+    }
+
+    // Tolerate snapshots written before appTheme/breakMaterial existed:
+    // missing keys fall back to defaults instead of failing the whole load.
+    enum CodingKeys: String, CodingKey {
+        case shortMessages, longMessages
+        case shortMessagesEnabled, longMessagesEnabled
+        case gradientIndex, soundName, soundVolume, customImagePath
+        case appTheme, breakMaterial
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        shortMessages = try c.decodeIfPresent([String].self, forKey: .shortMessages) ?? [
+            "Eyes to the horizon",
+            "Breathe, relax, and come back",
+            "Drink some water, look away, and come back",
+            "Take a quick walk around the house"
+        ]
+        longMessages = try c.decodeIfPresent([String].self, forKey: .longMessages) ?? [
+            "That was a good sprint - now relax",
+            "Amazing work. Now it's time stretch those muscles",
+            "You truly deserve this break!"
+        ]
+        shortMessagesEnabled = try c.decodeIfPresent(Bool.self, forKey: .shortMessagesEnabled) ?? true
+        longMessagesEnabled = try c.decodeIfPresent(Bool.self, forKey: .longMessagesEnabled) ?? true
+        gradientIndex = try c.decodeIfPresent(Int.self, forKey: .gradientIndex) ?? 0
+        soundName = try c.decodeIfPresent(SoundName.self, forKey: .soundName) ?? .chime
+        soundVolume = try c.decodeIfPresent(Double.self, forKey: .soundVolume) ?? 0.7
+        customImagePath = try c.decodeIfPresent(String.self, forKey: .customImagePath) ?? ""
+        appTheme = try c.decodeIfPresent(AppTheme.self, forKey: .appTheme) ?? .system
+        breakMaterial = try c.decodeIfPresent(BreakMaterial.self, forKey: .breakMaterial) ?? .frosted
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(shortMessages, forKey: .shortMessages)
+        try c.encode(longMessages, forKey: .longMessages)
+        try c.encode(shortMessagesEnabled, forKey: .shortMessagesEnabled)
+        try c.encode(longMessagesEnabled, forKey: .longMessagesEnabled)
+        try c.encode(gradientIndex, forKey: .gradientIndex)
+        try c.encode(soundName, forKey: .soundName)
+        try c.encode(soundVolume, forKey: .soundVolume)
+        try c.encode(customImagePath, forKey: .customImagePath)
+        try c.encode(appTheme, forKey: .appTheme)
+        try c.encode(breakMaterial, forKey: .breakMaterial)
     }
 }
 

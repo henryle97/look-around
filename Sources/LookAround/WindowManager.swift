@@ -165,9 +165,13 @@ final class WindowManager: NSObject, NSWindowDelegate {
             let view: AnyView
             switch kind {
             case .countdown:
-                view = AnyView(FloatingCountdownView().environmentObject(scheduler))
+                view = AnyView(FloatingCountdownView()
+                    .environmentObject(scheduler)
+                    .environmentObject(settings))
             case .overtime:
-                view = AnyView(OvertimePillView().environmentObject(scheduler))
+                view = AnyView(OvertimePillView()
+                    .environmentObject(scheduler)
+                    .environmentObject(settings))
             }
             let hosting = NSHostingView(rootView: view)
             hosting.frame = NSRect(x: 0, y: 0, width: 260, height: 60)

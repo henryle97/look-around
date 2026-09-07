@@ -2,12 +2,13 @@ import SwiftUI
 import ServiceManagement
 import AppKit
 
-// MARK: - Dark sidebar settings
+// MARK: - Sidebar settings (adaptive: follows AppTheme)
+//
+// Adaptive surfaces (laBG/laSide/laCard/laPopup/laPrimaryText) live in
+// Theme.swift as dynamic colors. Accent colors below stay fixed — they are
+// icon gradients, readable with white ink in either mode.
 
 extension Color {
-    static let laBG = Color(red: 0.098, green: 0.106, blue: 0.133)
-    static let laSide = Color(red: 0.066, green: 0.070, blue: 0.090)
-    static let laCard = Color.white.opacity(0.045)
     static let laPink = Color(red: 0.84, green: 0.36, blue: 0.70)
     static let laPurple = Color(red: 0.62, green: 0.42, blue: 0.88)
     static let laOrange = Color(red: 0.90, green: 0.55, blue: 0.25)
@@ -63,13 +64,13 @@ struct SettingsView: View {
             sidebar
                 .frame(width: 232)
                 .background(Color.laSide)
-            Divider().background(Color.white.opacity(0.08))
+            Divider().background(Color.laPrimaryText.opacity(0.08))
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.laBG)
         }
         .frame(minWidth: 940, minHeight: 700)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(settings.appearance.appTheme.colorScheme)
         .accessibilityIdentifier("settings.window")
     }
 
@@ -103,7 +104,7 @@ struct SettingsView: View {
     private func sideHeader(_ s: String) -> some View {
         Text(s)
             .font(.system(size: 13, weight: .semibold))
-            .foregroundColor(.white.opacity(0.42))
+            .foregroundColor(.laPrimaryText.opacity(0.42))
             .padding(.top, 16).padding(.bottom, 4).padding(.leading, 10)
     }
 
@@ -124,11 +125,11 @@ struct SettingsView: View {
                 }
                 Text(title)
                     .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(selected ? 1 : 0.88))
+                    .foregroundColor(.laPrimaryText.opacity(selected ? 1 : 0.88))
                 Spacer()
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(selected ? Color.white.opacity(0.09) : Color.clear,
+            .background(selected ? Color.laPrimaryText.opacity(0.09) : Color.clear,
                         in: RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
@@ -188,7 +189,7 @@ struct PageHeader: View {
             }
             Text(title)
                 .font(.system(size: 22, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.laPrimaryText)
         }
     }
 }
@@ -203,9 +204,9 @@ struct BackButton: View {
                 Image(systemName: "chevron.left").font(.system(size: 14, weight: .semibold))
                 Text("Back").font(.system(size: 15, weight: .medium))
             }
-            .foregroundColor(.white.opacity(0.85))
+            .foregroundColor(.laPrimaryText.opacity(0.85))
             .padding(.horizontal, 16).padding(.vertical, 8)
-            .overlay(Capsule().stroke(Color.white.opacity(0.22), lineWidth: 1))
+            .overlay(Capsule().stroke(Color.laPrimaryText.opacity(0.22), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -217,7 +218,7 @@ struct SectionTitle: View {
     var body: some View {
         Text(text)
             .font(.system(size: 17, weight: .bold))
-            .foregroundColor(.white)
+            .foregroundColor(.laPrimaryText)
             .padding(.top, 6)
     }
 }
@@ -239,7 +240,7 @@ struct Card<Content: View>: View {
 
 struct CardDivider: View {
     var body: some View {
-        Divider().background(Color.white.opacity(0.09))
+        Divider().background(Color.laPrimaryText.opacity(0.09))
             .padding(.vertical, 2)
     }
 }
@@ -254,11 +255,11 @@ struct SettingRow<Control: View>: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.system(size: 15))
-                    .foregroundColor(.white)
+                    .foregroundColor(.laPrimaryText)
                 if let s = subtitle {
                     Text(s)
                         .font(.system(size: 13))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(.laPrimaryText.opacity(0.55))
                 }
             }
             Spacer()
@@ -284,7 +285,7 @@ struct ChipStepper<V: Strideable>: View {
         HStack(spacing: 8) {
             Text(format(value))
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(.laPrimaryText)
                 .accessibilityIdentifier("\(id).value")
             Stepper("", value: $value, in: range, step: step)
                 .labelsHidden()
@@ -305,9 +306,9 @@ struct DayCircles: View {
                 } label: {
                     Text(d.1)
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(days.contains(d.0) ? .white : .white.opacity(0.5))
+                        .foregroundColor(days.contains(d.0) ? .white : .laPrimaryText.opacity(0.5))
                         .frame(width: 30, height: 30)
-                        .background(days.contains(d.0) ? Color.laBlue : Color.white.opacity(0.08),
+                        .background(days.contains(d.0) ? Color.laBlue : Color.laPrimaryText.opacity(0.08),
                                     in: Circle())
                 }
                 .buttonStyle(.plain)

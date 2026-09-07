@@ -26,7 +26,7 @@ struct SmartPausePage: View {
                      subtitle: "Pauses breaks during calls and online meetings",
                      isOn: $settings.smartPause.pauseOnMeetings) {
                 Text("Detected when a meeting app (Zoom, Teams, Meet…) is frontmost. Chat apps like Slack are excluded — add them as deep-focus apps if you take calls there.")
-                    .font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                    .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                     .padding(.bottom, 8)
             }
             CardDivider()
@@ -45,7 +45,7 @@ struct SmartPausePage: View {
                      isOn: $settings.smartPause.pauseOnCalendarEvents) {
                 HStack {
                     Text("Calendar access: \(calAccess)")
-                        .font(.system(size: 13)).foregroundColor(.white.opacity(0.6))
+                        .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.6))
                     Spacer()
                     Button("Allow access") {
                         scheduler.calendarMonitor.requestAccess()
@@ -91,7 +91,7 @@ struct SmartPausePage: View {
                     }
                     ForEach(settings.smartPause.deepFocusApps, id: \.self) { app in
                         HStack {
-                            Text(app).foregroundColor(.white.opacity(0.85))
+                            Text(app).foregroundColor(.laPrimaryText.opacity(0.85))
                             Spacer()
                             Button("Remove") {
                                 settings.smartPause.deepFocusApps.removeAll { $0 == app }
@@ -109,7 +109,7 @@ struct SmartPausePage: View {
                      subtitle: "Pauses breaks while you play fullscreen games",
                      isOn: $settings.smartPause.pauseOnGaming) {
                 Text("Detected when the frontmost window fills the screen.")
-                    .font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                    .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                     .padding(.bottom, 8)
             }
             CardDivider()
@@ -118,20 +118,20 @@ struct SmartPausePage: View {
                      subtitle: "Pauses breaks while you stay fullscreen",
                      isOn: $settings.smartPause.pauseOnFocusMode) {
                 Text("macOS exposes no Focus-state API, so this pauses while any app fills the screen.")
-                    .font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                    .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                     .padding(.bottom, 8)
             }
             CardDivider()
             HStack {
                 Image(systemName: "record.circle")
                     .font(.system(size: 17))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.laPrimaryText.opacity(0.8))
                     .frame(width: 40, height: 40)
-                    .background(Color.white.opacity(0.08), in: Circle())
+                    .background(Color.laPrimaryText.opacity(0.08), in: Circle())
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Screen recording or sharing").foregroundColor(.white)
+                    Text("Screen recording or sharing").foregroundColor(.laPrimaryText)
                     Text("Pauses breaks while a recorder is frontmost")
-                        .font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                        .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                 }
                 Spacer()
                 Toggle("", isOn: $settings.smartPause.pauseOnScreenSharing).labelsHidden()
@@ -152,13 +152,13 @@ struct SmartPausePage: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("Pause or resume LookAround when I step away")
-                        .font(.system(size: 15)).foregroundColor(.white)
+                        .font(.system(size: 15)).foregroundColor(.laPrimaryText)
                     Spacer()
-                    Text("Automatic").font(.system(size: 14)).foregroundColor(.white.opacity(0.7))
+                    Text("Automatic").font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.7))
                 }
                 .padding(.vertical, 10)
                 Text("LookAround will pause or reset timers based on your activity and settings.")
-                    .font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                    .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                     .padding(.bottom, 6)
             }
             CardDivider()
@@ -176,12 +176,12 @@ struct SmartPausePage: View {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 17))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(.laPrimaryText.opacity(0.85))
                     .frame(width: 40, height: 40)
-                    .background(Color.white.opacity(0.08), in: Circle())
+                    .background(Color.laPrimaryText.opacity(0.08), in: Circle())
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).foregroundColor(.white)
-                    Text(subtitle).font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                    Text(title).foregroundColor(.laPrimaryText)
+                    Text(subtitle).font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                 }
                 Spacer()
                 Button("Options") {
@@ -255,7 +255,7 @@ struct WellnessPage: View {
             }
         }
         Text("Reminders arrive as macOS notifications — allow them in System Settings for the full effect.")
-            .font(.caption).foregroundColor(.white.opacity(0.5))
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
     }
 }
 
@@ -265,12 +265,12 @@ struct StatsSettingsPage: View {
     @EnvironmentObject var settings: SettingsStore
     var body: some View {
         PageHeader(icon: "arrow.clockwise", title: "Stats", color: .laPink)
-        Text("Today's Screen Score").font(.system(size: 17, weight: .bold)).foregroundColor(.white)
+        Text("Today's Screen Score").font(.system(size: 17, weight: .bold)).foregroundColor(.laPrimaryText)
         Card {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .stroke(Color.white.opacity(0.12), style: StrokeStyle(lineWidth: 9, dash: [2, 5]))
+                        .stroke(Color.laPrimaryText.opacity(0.12), style: StrokeStyle(lineWidth: 9, dash: [2, 5]))
                         .frame(width: 90, height: 90)
                     Circle()
                         .trim(from: 0, to: max(0.02, scoreFraction * 0.75))
@@ -281,9 +281,9 @@ struct StatsSettingsPage: View {
                         .rotationEffect(.degrees(135))
                         .frame(width: 90, height: 90)
                     Text("\(score)").font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.laPrimaryText)
                 }
-                Text(scoreMessage).font(.system(size: 14)).foregroundColor(.white.opacity(0.7))
+                Text(scoreMessage).font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.7))
                 Spacer()
             }
             .padding(.vertical, 8)
@@ -336,9 +336,9 @@ struct StatsSettingsPage: View {
     private func miniRow(dot: Color, label: String, value: String, axID: String? = nil) -> some View {
         HStack {
             Circle().fill(dot).frame(width: 9, height: 9)
-            Text(label).foregroundColor(.white)
+            Text(label).foregroundColor(.laPrimaryText)
             Spacer()
-            Text(value).foregroundColor(.white.opacity(0.8)).monospacedDigit()
+            Text(value).foregroundColor(.laPrimaryText.opacity(0.8)).monospacedDigit()
                 .accessibilityIdentifier(axID ?? "")
         }
         .padding(.vertical, 8)
@@ -368,13 +368,13 @@ struct AlertsPage: View {
             }
             CardDivider()
             HStack {
-                Text("Show reminder").foregroundColor(.white)
+                Text("Show reminder").foregroundColor(.laPrimaryText)
                 Spacer()
                 ChipStepper(value: $settings.breaks.preBreakLeadTime, range: 15...600, step: 15,
                             id: "settings.alerts.preBreakLeadTime") {
                     $0 < 60 ? "\($0)s" : (Int($0) / 60 == 1 ? "1 minute" : "\(Int($0) / 60) minutes")
                 }
-                Text("before the break starts").foregroundColor(.white.opacity(0.7))
+                Text("before the break starts").foregroundColor(.laPrimaryText.opacity(0.7))
             }
             .padding(.vertical, 10)
             CardDivider()
@@ -419,7 +419,7 @@ struct AlertsPage: View {
                     .stroke(selected ? Color.laBlue : Color.clear, lineWidth: 3))
                 Text(caption)
                     .font(.system(size: 13, weight: selected ? .bold : .regular))
-                    .foregroundColor(selected ? .white : .white.opacity(0.65))
+                    .foregroundColor(selected ? .laPrimaryText : .laPrimaryText.opacity(0.65))
             }
         }
         .buttonStyle(.plain)
@@ -434,7 +434,7 @@ struct AlertsPage: View {
 
     private func alertMini(_ title: String, _ isOn: Binding<Bool>) -> some View {
         HStack {
-            Text(title).font(.system(size: 14)).foregroundColor(.white)
+            Text(title).font(.system(size: 14)).foregroundColor(.laPrimaryText)
             Spacer()
             Toggle("", isOn: isOn).labelsHidden()
         }
@@ -445,7 +445,7 @@ struct AlertsPage: View {
     private var countdownCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Countdown before break")
-                .font(.system(size: 16, weight: .bold)).foregroundColor(.white)
+                .font(.system(size: 16, weight: .bold)).foregroundColor(.laPrimaryText)
             ZStack {
                 LinearGradient(colors: [Color(red: 0.85, green: 0.30, blue: 0.45),
                                         Color(red: 0.95, green: 0.60, blue: 0.35)],
@@ -460,7 +460,7 @@ struct AlertsPage: View {
                 .background(Color.black.opacity(0.45), in: Capsule())
             }
             Text("A countdown that displays when a break is about to start")
-                .font(.system(size: 13)).foregroundColor(.white.opacity(0.6))
+                .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.6))
             SettingRow(label: "Enabled") {
                 Toggle("", isOn: $settings.breaks.countdownEnabled).labelsHidden()
             }
@@ -478,7 +478,7 @@ struct AlertsPage: View {
     private var overtimeCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Overtime nudge")
-                .font(.system(size: 16, weight: .bold)).foregroundColor(.white)
+                .font(.system(size: 16, weight: .bold)).foregroundColor(.laPrimaryText)
             ZStack {
                 LinearGradient(colors: [Color(red: 0.80, green: 0.20, blue: 0.25),
                                         Color(red: 0.90, green: 0.45, blue: 0.20)],
@@ -495,7 +495,7 @@ struct AlertsPage: View {
                 .background(Color.black.opacity(0.45), in: Capsule())
             }
             Text("Shows how long you've been working past your chosen screen time. Shake to dismiss.")
-                .font(.system(size: 13)).foregroundColor(.white.opacity(0.6))
+                .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.6))
             SettingRow(label: "Enabled") {
                 Toggle("", isOn: $settings.breaks.overtimeNudgeEnabled).labelsHidden()
             }
@@ -517,7 +517,7 @@ struct LockScreenPage: View {
     @AppStorage("lookaround.lock.offset") private var offset = 0.4
     var body: some View {
         PageHeader(icon: "lock.fill", title: "Lock Screen", color: .laPink)
-        Text("Lock screen").font(.system(size: 17, weight: .bold)).foregroundColor(.white)
+        Text("Lock screen").font(.system(size: 17, weight: .bold)).foregroundColor(.laPrimaryText)
         // preview mock
         ZStack {
             LinearGradient(colors: [Color(red: 0.30, green: 0.25, blue: 0.65),
@@ -551,16 +551,16 @@ struct LockScreenPage: View {
             }
             CardDivider()
             HStack {
-                Text("Vertical offset").foregroundColor(.white)
+                Text("Vertical offset").foregroundColor(.laPrimaryText)
                 Spacer()
-                Text("Default").font(.system(size: 14)).foregroundColor(.white.opacity(0.55))
+                Text("Default").font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.55))
             }
             .padding(.vertical, 4)
             Slider(value: $offset, in: 0...1)
                 .padding(.bottom, 10)
         }
         Text("Live lock-screen status needs the LookAround system helper, which is not installed — these preferences apply once it is.")
-            .font(.caption).foregroundColor(.white.opacity(0.5))
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
     }
 }
 
@@ -598,7 +598,7 @@ struct SoundsPage: View {
             .padding(.bottom, 8)
         }
         Text("Pick the chime that plays when a break begins, or mute it with None.")
-            .font(.caption).foregroundColor(.white.opacity(0.5))
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
     }
 }
 
@@ -617,7 +617,7 @@ struct ShortcutsPage: View {
             shortcutRow("Open settings", keys: ["⌘", ","])
         }
         Text("These work while the menu-bar panel is open. System-wide hotkeys need Accessibility access.")
-            .font(.caption).foregroundColor(.white.opacity(0.5))
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
         Button("Open Accessibility Settings") {
             NSWorkspace.shared.open(URL(string:
                 "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
@@ -627,15 +627,15 @@ struct ShortcutsPage: View {
     }
     private func shortcutRow(_ label: String, keys: [String]) -> some View {
         HStack {
-            Text(label).foregroundColor(.white)
+            Text(label).foregroundColor(.laPrimaryText)
             Spacer()
             HStack(spacing: 4) {
                 ForEach(keys, id: \.self) { k in
                     Text(k)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.laPrimaryText.opacity(0.85))
                         .padding(.horizontal, 7).padding(.vertical, 3)
-                        .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 5))
+                        .background(Color.laPrimaryText.opacity(0.1), in: RoundedRectangle(cornerRadius: 5))
                 }
             }
         }
@@ -651,12 +651,12 @@ struct IPhoneSyncPage: View {
         Card {
             HStack {
                 Image(systemName: "iphone.slash")
-                    .font(.system(size: 20)).foregroundColor(.white.opacity(0.7))
+                    .font(.system(size: 20)).foregroundColor(.laPrimaryText.opacity(0.7))
                 VStack(alignment: .leading) {
-                    Text("Not paired").font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                    Text("Not paired").font(.system(size: 15, weight: .semibold)).foregroundColor(.laPrimaryText)
                         .accessibilityIdentifier("settings.iphoneSync.status")
                     Text("No iPhone or iPad connected").font(.system(size: 13))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(.laPrimaryText.opacity(0.55))
                 }
                 Spacer()
             }
@@ -664,14 +664,14 @@ struct IPhoneSyncPage: View {
         }
         Card {
             VStack(alignment: .leading, spacing: 8) {
-                Text("How pairing works").font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                Text("How pairing works").font(.system(size: 15, weight: .semibold)).foregroundColor(.laPrimaryText)
                 Text("1. Install the LookAround companion app on your iPhone or iPad.\n2. Put both devices on the same Wi-Fi network.\n3. Enter the pairing code shown on your phone.")
-                    .font(.system(size: 14)).foregroundColor(.white.opacity(0.7))
+                    .font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.7))
             }
             .padding(.vertical, 8)
         }
         Text("Device sync needs the companion app and a LookAround account — neither is included in this build.")
-            .font(.caption).foregroundColor(.white.opacity(0.5))
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
     }
 }
 
@@ -687,16 +687,16 @@ struct AutomationPage: View {
         Card {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Perform actions during breaks")
-                    .font(.system(size: 16, weight: .bold)).foregroundColor(.white)
+                    .font(.system(size: 16, weight: .bold)).foregroundColor(.laPrimaryText)
                 Text("LookAround can automatically run scripts or perform actions when your break starts or ends. Use the buttons below to add new automations.")
-                    .font(.system(size: 14)).foregroundColor(.white.opacity(0.65))
+                    .font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.65))
             }
             .padding(.vertical, 10)
         }
         automationSection(trigger: .onBreakStart, title: "Start of break")
         automationSection(trigger: .onBreakEnd, title: "End of break")
         Text("Example: pause Spotify when a break starts and resume it when the break ends.")
-            .font(.caption).foregroundColor(.white.opacity(0.5))
+            .font(.caption).foregroundColor(.laPrimaryText.opacity(0.5))
         .sheet(item: $editing) { script in
             AutomationEditor(script: script) { updated in
                 if let i = settings.automations.firstIndex(where: { $0.id == updated.id }) {
@@ -711,35 +711,35 @@ struct AutomationPage: View {
             .frame(width: 440, height: 380)
             .padding()
             .background(Color.laBG)
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(settings.appearance.appTheme.colorScheme)
         }
     }
 
     private func automationSection(trigger: AutomationScript.Trigger, title: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.system(size: 17, weight: .bold)).foregroundColor(.white)
+            Text(title).font(.system(size: 17, weight: .bold)).foregroundColor(.laPrimaryText)
             Card {
                 let items = settings.automations.filter { $0.trigger == trigger }
                 if items.isEmpty {
                     Text("No automations yet.")
-                        .font(.system(size: 14)).foregroundColor(.white.opacity(0.5))
+                        .font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.5))
                         .padding(.vertical, 8)
                 }
                 ForEach(items) { a in
                     Button { editing = a } label: {
                         HStack(spacing: 12) {
                             Image(systemName: "apple.terminal")
-                                .foregroundColor(.white.opacity(0.85))
+                                .foregroundColor(.laPrimaryText.opacity(0.85))
                                 .frame(width: 38, height: 38)
-                                .background(Color.white.opacity(0.08), in: Circle())
+                                .background(Color.laPrimaryText.opacity(0.08), in: Circle())
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(a.name).foregroundColor(.white)
+                                Text(a.name).foregroundColor(.laPrimaryText)
                                 Text(a.kind.rawValue).font(.system(size: 13))
-                                    .foregroundColor(.white.opacity(0.55))
+                                    .foregroundColor(.laPrimaryText.opacity(0.55))
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .foregroundColor(.white.opacity(0.35))
+                                .foregroundColor(.laPrimaryText.opacity(0.35))
                         }
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
@@ -798,11 +798,11 @@ struct AutomationEditor: View {
                 }
             }
             Text(script.kind == .shortcut ? "Shortcut name:" : "Script source:")
-                .font(.caption).foregroundColor(.white.opacity(0.6))
+                .font(.caption).foregroundColor(.laPrimaryText.opacity(0.6))
             TextEditor(text: $script.source)
                 .font(.system(.body, design: .monospaced))
                 .frame(minHeight: 120)
-                .border(Color.white.opacity(0.15))
+                .border(Color.laPrimaryText.opacity(0.15))
             HStack {
                 Button("Run now") { AutomationRunner.run(script) }
                     .buttonStyle(.bordered)
@@ -833,11 +833,11 @@ struct AboutPage: View {
                         .foregroundColor(.white)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("LookAround").font(.system(size: 20, weight: .bold)).foregroundColor(.white)
-                    Text("Version 0.1.0").font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                    Text("LookAround").font(.system(size: 20, weight: .bold)).foregroundColor(.laPrimaryText)
+                    Text("Version 0.1.0").font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                         .accessibilityIdentifier("settings.about.version")
                     Text("A smart break reminder for your Mac.")
-                        .font(.system(size: 13)).foregroundColor(.white.opacity(0.55))
+                        .font(.system(size: 13)).foregroundColor(.laPrimaryText.opacity(0.55))
                 }
                 Spacer()
             }
@@ -845,7 +845,7 @@ struct AboutPage: View {
         }
         Card {
             Text("LookAround is a break reminder for your Mac. Take regular breaks to reduce eye strain.")
-                .font(.system(size: 14)).foregroundColor(.white.opacity(0.7))
+                .font(.system(size: 14)).foregroundColor(.laPrimaryText.opacity(0.7))
                 .padding(.vertical, 8)
             HStack {
                 Spacer()
