@@ -1,0 +1,53 @@
+name: Link check
+
+# Validates links across the site, README, and packaging docs (see
+# .lychee.toml for the exclude list — e.g. the Cask's Ruby url template).
+#
+# Runs non-blocking (continue-on-error): the Pages homepage URL will
+# legitimately 404 in every one of these runs until GitHub Pages is
+# enabled for this repo (Settings → Pages → Deploy from branch → main →
+# /docs) — that's a real, expected gap during initial setup, not a
+# reason to hide the check. Once Pages is live this job goes green;
+# after that, a red run means an actual broken link.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "packaging/**"
+      - ".lychee.toml"
+      - ".github/workflows/link-check.yml"
+  pull_request:
+    paths:
+      - "README.md"
+      - "docs/**"
+      - "packaging/**"
+      - ".lychee.toml"
+      - ".github/workflows/link-check.yml"
+  schedule:
+    - cron: "0 6 * * 1" # weekly, catches link rot even with no PRs
+  workflow_dispatch:
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Link check
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        continue-on-error: true
+        with:
+          args: >-
+            --no-progress
+            --config .lychee.toml
+            README.md
+            docs/*.html
+            packaging/homebrew/README.md
+            packaging/homebrew/RELEASE-NOTES.md
+            packaging/homebrew/Casks/lookaround.rb
+          fail: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

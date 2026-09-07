@@ -6,7 +6,15 @@ cd "$(dirname "$0")"
 
 APP="LookAround.app"
 BIN="$APP/Contents/MacOS/LookAround"
-SDK="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+# SDK lookup: allow override, then CLT path (local), then active toolchain
+# (GitHub runners and full-Xcode machines where the CLT dir may not exist).
+if [[ -n "${MACOSX_SDK:-}" ]]; then
+  SDK="$MACOSX_SDK"
+elif [[ -d "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk" ]]; then
+  SDK="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+else
+  SDK="$(xcrun --show-sdk-path)"
+fi
 
 echo "→ compiling…"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

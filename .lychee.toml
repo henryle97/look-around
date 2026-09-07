@@ -1,0 +1,14 @@
+# Config for `lychee` (docs/README/packaging link checker).
+# Run locally:  lychee --config .lychee.toml README.md docs/ packaging/
+# CI:           .github/workflows/link-check.yml
+
+accept = ["100..=299"]
+timeout = 20
+retry_wait_time = 2
+max_retries = 3
+
+exclude = [
+  # Casks/lookaround.rb's url stanza is Ruby source, not a literal link —
+  # "#{version}" is a real, unresolvable URL if this checker didn't skip it.
+  "^https://github\\.com/henryle97/look-around/releases/download/v#\\{version\\}/",
+]
