@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-15 # arm64; macos-14 is deprecated
+    runs-on: macos-26 # arm64, Xcode 26.6 default — has the macOS 26 SDK (glassEffect)
     env:
       TAP_REPO: ${{ vars.HOMEBREW_TAP_REPO }}
     steps:
