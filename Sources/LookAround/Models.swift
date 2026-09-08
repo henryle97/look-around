@@ -273,6 +273,20 @@ struct AppearanceSettings: Codable, Equatable {
         }
     }
 
+    /// What the break screen renders behind the card. `.gradient` ignores
+    /// `backgroundBlurEnabled` (there's nothing to blur on a flat fill).
+    enum BackgroundMode: String, Codable, CaseIterable, Identifiable {
+        case wallpaper, customImage, gradient
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .wallpaper: return "Wallpaper"
+            case .customImage: return "Custom Image"
+            case .gradient: return "Gradient"
+            }
+        }
+    }
+
     var shortMessages: [BreakPrompt] = AppearanceSettings.defaultShortMessages
     var longMessages: [BreakPrompt] = AppearanceSettings.defaultLongMessages
     var shortMessagesEnabled: Bool = true
@@ -283,6 +297,12 @@ struct AppearanceSettings: Codable, Equatable {
     var customImagePath: String = ""
     var appTheme: AppTheme = .system
     var breakMaterial: BreakMaterial = .frosted
+    var backgroundMode: BackgroundMode = .wallpaper
+    var backgroundBlurEnabled: Bool = true
+    var soundOnStart: Bool = true
+    var soundOnEnd: Bool = true
+    var customStartSoundPath: String = ""
+    var customEndSoundPath: String = ""
 
     enum SoundName: String, Codable, CaseIterable, Identifiable {
         case none, chime, rain, forest, waves
@@ -290,13 +310,16 @@ struct AppearanceSettings: Codable, Equatable {
         var label: String { rawValue.capitalized }
     }
 
-    // Tolerate snapshots written before appTheme/breakMaterial existed:
+    // Tolerate snapshots written before appTheme/breakMaterial (and later,
+    // backgroundMode/soundOnStart/soundOnEnd/custom sound paths) existed:
     // missing keys fall back to defaults instead of failing the whole load.
     enum CodingKeys: String, CodingKey {
         case shortMessages, longMessages
         case shortMessagesEnabled, longMessagesEnabled
         case gradientIndex, soundName, soundVolume, customImagePath
         case appTheme, breakMaterial
+        case backgroundMode, backgroundBlurEnabled
+        case soundOnStart, soundOnEnd, customStartSoundPath, customEndSoundPath
     }
 
     init() {}
@@ -328,6 +351,12 @@ struct AppearanceSettings: Codable, Equatable {
         customImagePath = try c.decodeIfPresent(String.self, forKey: .customImagePath) ?? ""
         appTheme = try c.decodeIfPresent(AppTheme.self, forKey: .appTheme) ?? .system
         breakMaterial = try c.decodeIfPresent(BreakMaterial.self, forKey: .breakMaterial) ?? .frosted
+        backgroundMode = try c.decodeIfPresent(BackgroundMode.self, forKey: .backgroundMode) ?? .wallpaper
+        backgroundBlurEnabled = try c.decodeIfPresent(Bool.self, forKey: .backgroundBlurEnabled) ?? true
+        soundOnStart = try c.decodeIfPresent(Bool.self, forKey: .soundOnStart) ?? true
+        soundOnEnd = try c.decodeIfPresent(Bool.self, forKey: .soundOnEnd) ?? true
+        customStartSoundPath = try c.decodeIfPresent(String.self, forKey: .customStartSoundPath) ?? ""
+        customEndSoundPath = try c.decodeIfPresent(String.self, forKey: .customEndSoundPath) ?? ""
     }
 
     func encode(to encoder: Encoder) throws {
@@ -342,6 +371,12 @@ struct AppearanceSettings: Codable, Equatable {
         try c.encode(customImagePath, forKey: .customImagePath)
         try c.encode(appTheme, forKey: .appTheme)
         try c.encode(breakMaterial, forKey: .breakMaterial)
+        try c.encode(backgroundMode, forKey: .backgroundMode)
+        try c.encode(backgroundBlurEnabled, forKey: .backgroundBlurEnabled)
+        try c.encode(soundOnStart, forKey: .soundOnStart)
+        try c.encode(soundOnEnd, forKey: .soundOnEnd)
+        try c.encode(customStartSoundPath, forKey: .customStartSoundPath)
+        try c.encode(customEndSoundPath, forKey: .customEndSoundPath)
     }
 
     // MARK: default prompt pools

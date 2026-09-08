@@ -68,7 +68,7 @@ open_settings || exit 1
 log "checking theme defaults…"
 goto_page general "settings.general.launchAtLogin" || exit 1
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.general.appTheme.value)" "System" "default app theme"
-goto_subpage customizeScreen "settings.customize.gradient.0" || exit 1
+goto_subpage customizeScreen "settings.customize.background.mode.wallpaper" || exit 1
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.customizeScreen.material.value)" "Frosted" "default break material"
 
 log "setting Light + Liquid Glass…"
@@ -76,7 +76,7 @@ goto_page general "settings.general.launchAtLogin" || exit 1
 "$AX" click "$BUNDLE_ID" settings.general.appTheme.light >/dev/null
 sleep 0.2
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.general.appTheme.value)" "Light" "app theme after click"
-goto_subpage customizeScreen "settings.customize.gradient.0" || exit 1
+goto_subpage customizeScreen "settings.customize.background.mode.wallpaper" || exit 1
 "$AX" click "$BUNDLE_ID" settings.customizeScreen.material.liquidGlass >/dev/null
 sleep 0.2
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.customizeScreen.material.value)" "Liquid Glass" "material after click"
@@ -87,7 +87,7 @@ launch_app --ui-testing
 open_settings || exit 1
 goto_page general "settings.general.launchAtLogin" || exit 1
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.general.appTheme.value)" "Light" "app theme persists"
-goto_subpage customizeScreen "settings.customize.gradient.0" || exit 1
+goto_subpage customizeScreen "settings.customize.background.mode.wallpaper" || exit 1
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.customizeScreen.material.value)" "Liquid Glass" "material persists"
 
 log "relaunching with --reset-state to confirm defaults return…"
@@ -95,7 +95,7 @@ launch_app --ui-testing --reset-state
 open_settings || exit 1
 goto_page general "settings.general.launchAtLogin" || exit 1
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.general.appTheme.value)" "System" "app theme after --reset-state"
-goto_subpage customizeScreen "settings.customize.gradient.0" || exit 1
+goto_subpage customizeScreen "settings.customize.background.mode.wallpaper" || exit 1
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.customizeScreen.material.value)" "Frosted" "material after --reset-state"
 
 "$AX" terminate "$BUNDLE_ID" >/dev/null 2>&1

@@ -30,30 +30,21 @@ enum WallpaperLoader {
     }
 }
 
-/// The real break backdrop: the user's own wallpaper, heavily blurred,
-/// like a frosted-glass desktop — with gradient fallback.
+/// The real break backdrop: wallpaper, a custom image, or a flat gradient —
+/// picked by `AppearanceSettings.backgroundMode` — heavily blurred for the
+/// two photo modes (unless `backgroundBlurEnabled` is off), with a faux
+/// gradient fallback when no image is available.
 struct BreakBackdrop: View {
-    @State private var image: NSImage? = nil
+    @EnvironmentObject var settings: SettingsStore
+    @State private var wallpaperImage: NSImage? = nil
+    @State private var customImage: NSImage? = nil
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         ZStack {
-            if let img = image, !reduceTransparency {
-                GeometryReader { geo in
-                    Image(nsImage: img)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
-                        .blur(radius: 60)
-                        .scaleEffect(reduceMotion ? 1.0 : 1.12)
-                        .saturation(reduceMotion ? 1.0 : 1.1)
-                }
-            } else {
-                FauxWallpaper()
-            }
+            background
             // veil keeps white text readable on bright wallpapers
             Color.black.opacity(contrast == .increased ? 0.42 : 0.24)
             // vignette for depth
@@ -63,7 +54,53 @@ struct BreakBackdrop: View {
                 startRadius: 100, endRadius: 900)
         }
         .ignoresSafeArea()
-        .onAppear { image = WallpaperLoader.load() }
+        .onAppear {
+            wallpaperImage = WallpaperLoader.load()
+            reloadCustomImage()
+        }
+        .onChange(of: settings.appearance.customImagePath) { _ in reloadCustomImage() }
+    }
+
+    @ViewBuilder private var background: some View {
+        switch settings.appearance.backgroundMode {
+        case .gradient:
+            LinearGradient(colors: gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .customImage:
+            if let img = customImage, !reduceTransparency {
+                blurredImage(img)
+            } else {
+                FauxWallpaper()
+            }
+        case .wallpaper:
+            if let img = wallpaperImage, !reduceTransparency {
+                blurredImage(img)
+            } else {
+                FauxWallpaper()
+            }
+        }
+    }
+
+    private func blurredImage(_ img: NSImage) -> some View {
+        GeometryReader { geo in
+            Image(nsImage: img)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geo.size.width, height: geo.size.height)
+                .clipped()
+                .blur(radius: settings.appearance.backgroundBlurEnabled ? 60 : 0)
+                .scaleEffect(reduceMotion ? 1.0 : 1.12)
+                .saturation(reduceMotion ? 1.0 : 1.1)
+        }
+    }
+
+    private var gradientColors: [Color] {
+        let i = settings.appearance.gradientIndex
+        return BreakGradients.indices.contains(i) ? BreakGradients[i] : BreakGradients[0]
+    }
+
+    private func reloadCustomImage() {
+        let path = settings.appearance.customImagePath
+        customImage = path.isEmpty ? nil : NSImage(contentsOfFile: path)
     }
 }
 
