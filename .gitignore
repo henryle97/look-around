@@ -8,3 +8,6 @@ dist/
 .DS_Store
 tools/axdrive/axdrive
 data/
+tools/benchprobe/benchprobe
+*.trace/
+bench-baseline.json

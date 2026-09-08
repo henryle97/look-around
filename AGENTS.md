@@ -30,6 +30,11 @@ After making any code change:
 After making major changes, SHOULD run the full UI test suite:
 `for f in scripts/test-*.sh; do $f || break; done`. Fix any failures and repeat.
 
+SHOULD run `./scripts/bench.sh --baseline <saved.json>` when a change touches
+the scheduler tick, app startup, or anything that creates threads or timers —
+those are the paths where a regression is invisible in tests. See
+`docs/benchmarking.md`.
+
 There is no linter/formatter configured in this repo.
 
 ## Commands
@@ -57,6 +62,9 @@ There is no linter/formatter configured in this repo.
 - `scripts/test-*.sh` — end-to-end UI test suites driven by `axdrive`
 - `Tests/LookAroundTests/` — standalone unit-test binary for pure logic (no XCTest — see below)
 - `scripts/test-unit.sh` — compiles and runs `Tests/LookAroundTests/`
+- `tools/benchprobe/` — kernel resource-counter sampler used for benchmarking
+- `scripts/bench.sh` — idle-cost benchmark + regression gate (no Xcode needed)
+- `scripts/profile.sh` — Instruments deep-dive via `xctrace` (needs Xcode)
 - `packaging/homebrew/` — Homebrew Cask source; `.github/workflows/release.yml` builds and publishes the DMG on `v*` tags
 
 ## Workflows
@@ -67,6 +75,14 @@ Apply whenever you modify UI behavior: how to add accessibility
 identifiers, how to launch/write/run the `axdrive`-based test scripts,
 and known `axdrive` quirks.
 Read `./docs/ui-testing.md`.
+
+### Benchmarking and profiling
+
+Apply when a change could affect idle cost, memory, thread count or launch
+time: the two-tier setup (cheap counter-based gate vs. Instruments deep-dive),
+the measurement traps that produce confidently wrong numbers, and the current
+baseline.
+Read `./docs/benchmarking.md`.
 
 ### Unit testing pure logic (no XCTest/`swift test`)
 
@@ -87,11 +103,17 @@ Read `./docs/unit-testing.md`.
   (convention: `area.control`) — never select by screen coordinates in
   tests. See `docs/ui-testing.md` for the full convention and pitfalls.
 - Never leave a stray `LookAround` process running after a test — every
-  test script should `axdrive terminate` at both start and end.
+  test script should `axdrive terminate` at both start and end. The one
+  exception is `scripts/bench.sh`, which kills only the PIDs it launched:
+  `axdrive terminate` kills by bundle id, which would take down a copy running
+  from another worktree mid-measurement (and vice versa).
 
 ### Forbidden Patterns
 
 - Don't put `.accessibilityIdentifier` on a custom View struct's root
   (a page body, an overlay `ZStack`, …) — it shadows all descendants'
   identifiers. Tag leaf controls instead.
-- Don't invoke `xcodebuild`/XCUITest — this environment has no Xcode.
+- Don't invoke `xcodebuild`/XCUITest. Xcode is now installed, but this repo
+  has no `.xcodeproj` and the UI suite is `axdrive`-based; `build.sh` remains
+  the supported build path. `xctrace` IS fair game for profiling — see
+  `docs/benchmarking.md`.
