@@ -10,6 +10,18 @@ final class CalendarMonitor: ObservableObject {
 
     enum AccessState { case unknown, granted, denied }
 
+    /// Authorization status read from the *class*, so a caller can gate on it
+    /// without touching `store` — building an `EKEventStore` opens an XPC
+    /// connection to the calendar daemon and parks worker threads for the life
+    /// of the process, which is pure waste until access is actually granted.
+    static var isAuthorized: Bool {
+        if #available(macOS 14, *) {
+            return EKEventStore.authorizationStatus(for: .event) == .fullAccess
+        } else {
+            return EKEventStore.authorizationStatus(for: .event) == .authorized
+        }
+    }
+
     private var lastCheck = Date.distantPast
     private var cachedInEvent = false
 

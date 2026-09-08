@@ -52,7 +52,7 @@ final class BreakScheduler: ObservableObject {
     @Published var lastWellnessMessage: String? = nil
 
     let settings: SettingsStore
-    let calendarMonitor = CalendarMonitor()
+    lazy var calendarMonitor = CalendarMonitor()
 
     private var timer: AnyCancellable?
     private var nextBreakAt: Date
@@ -304,6 +304,7 @@ final class BreakScheduler: ObservableObject {
         let probeReason = evaluator.pauseReason(frontmost: frontmost, running: running,
                                                 isFullscreen: fullscreen, frontmostBundle: bundle)
         let calendarReason: String? = (settings.smartPause.pauseOnCalendarEvents
+            && CalendarMonitor.isAuthorized
             && calendarMonitor.isInEvent(now: now)) ? "In a calendar event" : nil
         let reason = probeReason ?? calendarReason
 
