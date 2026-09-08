@@ -42,8 +42,19 @@ else
     if [[ "$VERSION" != "$CURRENT" ]]; then
         # Numeric X.Y.Z compare: refuse to stamp backwards over a plist
         # that's already ahead (a real drift signal, not just "different").
-        IFS='.' read -r cM cm cp <<< "${CURRENT}.0.0"
-        IFS='.' read -r vM vm vp <<< "${VERSION}.0.0"
+        # Split into arrays, not `read -r a b c`: zsh assigns the whole
+        # remainder to the last name, so the patch component would come
+        # out as "0.0.0" and the arithmetic below would abort ("bad
+        # floating point constant") — which, as an `if` condition, reads
+        # as false and silently defeats this very guard. Each component
+        # is trimmed at its first non-digit so a prerelease tag
+        # (1.0.0-rc.1) compares on its numeric part.
+        IFS='.' read -rA cparts <<< "${CURRENT}.0.0"
+        IFS='.' read -rA vparts <<< "${VERSION}.0.0"
+        cM="${cparts[1]%%[^0-9]*}"; cm="${cparts[2]%%[^0-9]*}"; cp="${cparts[3]%%[^0-9]*}"
+        vM="${vparts[1]%%[^0-9]*}"; vm="${vparts[2]%%[^0-9]*}"; vp="${vparts[3]%%[^0-9]*}"
+        cM="${cM:-0}"; cm="${cm:-0}"; cp="${cp:-0}"
+        vM="${vM:-0}"; vm="${vm:-0}"; vp="${vp:-0}"
         if (( cM > vM || (cM == vM && cm > vm) || (cM == vM && cm == vm && cp > vp) )); then
             echo "✗ tag version $VERSION is behind Info.plist's $CURRENT — check the tag" >&2
             exit 1
