@@ -111,6 +111,16 @@ Known quirks:
   its full contents on focus, so `--clear=N` should over-clear a bit
   (extra backspaces on an empty field are harmless no-ops) rather than
   count exactly N existing characters.
+- **Poll for the value you expect; never sleep a fixed amount and read.**
+  SwiftUI regenerates the AX tree when it re-renders, and it only re-renders
+  when something actually changes — so there is no fixed delay that is both
+  quick and safe. This bit once for real: `test-numeric-entry.sh` passed on a
+  flat `sleep 0.3` only because the app was mutating an `@Published` stat every
+  second, re-rendering the whole settings pane (and refreshing its AX tree)
+  whether or not anything had changed. Removing that per-second write for
+  performance reasons dropped the test from 4/4 to 2/5 — the product was fine,
+  the test had been leaning on an accidental refresh. See
+  `docs/benchmarking.md`.
 - The Settings window has, rarely and not reproducibly on demand,
   disappeared right after a synthetic Return keypress mid-edit. Cause
   unconfirmed (possibly cross-session interference — see below); a test

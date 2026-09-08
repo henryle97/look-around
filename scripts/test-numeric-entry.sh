@@ -70,10 +70,20 @@ type_and_verify() {
         # can actually make progress instead of clicking into nothing.
         wait_for "settings.screenBreaks.breakDuration.value" 3 || open_screen_breaks >/dev/null
         "$AX" click "$BUNDLE_ID" "$id" >/dev/null 2>&1
-        sleep 0.2
+        sleep 0.35
         "$AX" type "$BUNDLE_ID" "$digits" --clear=6 --enter >/dev/null 2>&1
-        sleep 0.3
-        got="$("$AX" read "$BUNDLE_ID" "$id" 2>/dev/null)"
+        # Poll for the committed value instead of sleeping a fixed amount. The
+        # settings pane only re-renders when something actually changes, so
+        # there is no single delay that is both quick and safe — this used to
+        # pass on a fixed 0.3s only because the app happened to mutate a
+        # @Published stat every second, re-rendering (and refreshing the AX
+        # tree) whether or not anything had changed. That is gone; see
+        # docs/benchmarking.md.
+        for _ in $(seq 1 15); do
+            got="$("$AX" read "$BUNDLE_ID" "$id" 2>/dev/null)"
+            [[ "$got" == "$want" ]] && break
+            sleep 0.1
+        done
         [[ "$got" == "$want" ]] && break
     done
     assert_eq "$got" "$want" "$what"
