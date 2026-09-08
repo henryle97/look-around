@@ -24,11 +24,12 @@ enum SoundPlayer {
     }
 
     /// What actually plays for one break event: a custom file if the user
-    /// dropped one in, otherwise the preset style — provided that event's
-    /// toggle is on. `beginBreak`/`endBreak` in `BreakScheduler` call these
-    /// directly rather than reading `soundName`/volume themselves.
-    static func playBreakStart(_ appearance: AppearanceSettings) {
-        guard appearance.soundOnStart else { return }
+    /// dropped one in, otherwise the preset style. `beginBreak`/`endBreak` in
+    /// `BreakScheduler` call `playBreakStart`/`playBreakEnd`, which additionally
+    /// gate on that event's on/off toggle; `SoundsPage`'s preview buttons call
+    /// `previewBreakStart`/`previewBreakEnd` directly so a preview always plays
+    /// even while the toggle is off.
+    static func previewBreakStart(_ appearance: AppearanceSettings) {
         if !appearance.customStartSoundPath.isEmpty {
             playCustom(path: appearance.customStartSoundPath, volume: appearance.soundVolume)
         } else {
@@ -36,13 +37,22 @@ enum SoundPlayer {
         }
     }
 
-    static func playBreakEnd(_ appearance: AppearanceSettings) {
-        guard appearance.soundOnEnd else { return }
+    static func previewBreakEnd(_ appearance: AppearanceSettings) {
         if !appearance.customEndSoundPath.isEmpty {
             playCustom(path: appearance.customEndSoundPath, volume: appearance.soundVolume)
         } else {
             play(appearance.soundName, volume: appearance.soundVolume)
         }
+    }
+
+    static func playBreakStart(_ appearance: AppearanceSettings) {
+        guard appearance.soundOnStart else { return }
+        previewBreakStart(appearance)
+    }
+
+    static func playBreakEnd(_ appearance: AppearanceSettings) {
+        guard appearance.soundOnEnd else { return }
+        previewBreakEnd(appearance)
     }
 
     private static func playSound(named: String, volume: Double) {

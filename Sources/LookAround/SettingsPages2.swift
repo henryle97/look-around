@@ -576,7 +576,7 @@ struct SoundsPage: View {
             SettingRow(label: "Play sound when the break begins") {
                 HStack(spacing: 10) {
                     previewButton(axID: "settings.sounds.begin.preview") {
-                        SoundPlayer.playBreakStart(settings.appearance)
+                        SoundPlayer.previewBreakStart(settings.appearance)
                     }
                     Toggle("", isOn: $settings.appearance.soundOnStart).labelsHidden()
                         .accessibilityIdentifier("settings.sounds.begin.enabled")
@@ -586,7 +586,7 @@ struct SoundsPage: View {
             SettingRow(label: "Play sound when the break ends") {
                 HStack(spacing: 10) {
                     previewButton(axID: "settings.sounds.end.preview") {
-                        SoundPlayer.playBreakEnd(settings.appearance)
+                        SoundPlayer.previewBreakEnd(settings.appearance)
                     }
                     Toggle("", isOn: $settings.appearance.soundOnEnd).labelsHidden()
                         .accessibilityIdentifier("settings.sounds.end.enabled")
@@ -660,6 +660,7 @@ struct SoundsPage: View {
                 .overlay(RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [4]))
                     .foregroundColor(.laPrimaryText.opacity(0.25)))
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("\(axPrefix).chooseButton")
@@ -681,6 +682,7 @@ struct SoundsPage: View {
                     Image(systemName: "play.circle").foregroundColor(.laPrimaryText.opacity(0.6))
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("\(axPrefix).previewButton")
                 Button { path.wrappedValue = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundColor(.laPrimaryText.opacity(0.4))
                 }
