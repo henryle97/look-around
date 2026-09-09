@@ -52,7 +52,7 @@ final class BreakScheduler: ObservableObject {
     @Published var lastWellnessMessage: String? = nil
 
     let settings: SettingsStore
-    let calendarMonitor = CalendarMonitor()
+    lazy var calendarMonitor = CalendarMonitor()
 
     private var timer: AnyCancellable?
     private var nextBreakAt: Date
@@ -66,6 +66,7 @@ final class BreakScheduler: ObservableObject {
     private var blinkNextAt: Date
     private var idleEpisodeCounted = false
     private var idleResetDone = false
+    private var pendingScreenSeconds: Double = 0
     private var recentShortPromptIDs: [String] = []
     private var recentLongPromptIDs: [String] = []
     private var lastShortCategory: PromptCategory? = nil
@@ -133,6 +134,18 @@ final class BreakScheduler: ObservableObject {
         snoozesLeft = min(daily, perCycle)
     }
 
+    /// Fold buffered screen-time accrual into the persisted stats. Called once a
+    /// minute from `tick()`, before a day rollover clears today's counter, and on
+    /// app termination — without that last one, quitting would silently discard
+    /// up to a minute of accrued time.
+    func flushScreenTime() {
+        guard pendingScreenSeconds > 0 else { return }
+        let minutes = pendingScreenSeconds / 60
+        settings.stats.screenTimeTodayMinutes += minutes
+        settings.stats.totalScreenMinutes += minutes
+        pendingScreenSeconds = 0
+    }
+
     private func rollDayIfNeeded() {
         let key = dayKey(Date())
         if settings.stats.snoozeDayKey != key {
@@ -140,6 +153,10 @@ final class BreakScheduler: ObservableObject {
             settings.stats.snoozesUsedToday = 0
         }
         if settings.stats.screenTimeDayKey != key {
+            // Credit buffered seconds to the day they were accrued in — they
+            // land in the lifetime total, and are then dropped from today along
+            // with the rest of yesterday's counter.
+            flushScreenTime()
             settings.stats.screenTimeDayKey = key
             settings.stats.screenTimeTodayMinutes = 0
         }
@@ -304,6 +321,7 @@ final class BreakScheduler: ObservableObject {
         let probeReason = evaluator.pauseReason(frontmost: frontmost, running: running,
                                                 isFullscreen: fullscreen, frontmostBundle: bundle)
         let calendarReason: String? = (settings.smartPause.pauseOnCalendarEvents
+            && CalendarMonitor.isAuthorized
             && calendarMonitor.isInEvent(now: now)) ? "In a calendar event" : nil
         let reason = probeReason ?? calendarReason
 
@@ -370,8 +388,14 @@ final class BreakScheduler: ObservableObject {
         timeUntilNextBreak = remaining
 
         // Screen-time accrual (only while present and inside office hours).
-        settings.stats.screenTimeTodayMinutes += 1.0 / 60.0
-        settings.stats.totalScreenMinutes += 1.0 / 60.0
+        // Buffered rather than written straight into `settings.stats`: those are
+        // @Published, so every mutation trips SettingsStore's debounced autosave,
+        // which re-encodes the *whole* settings snapshot to JSON and writes it to
+        // UserDefaults. Doing that once a second was a measurable slice of idle
+        // CPU (see docs/benchmarking.md). Screen time is displayed at whole-minute
+        // granularity, so flushing once a minute costs the UI nothing.
+        pendingScreenSeconds += 1
+        if pendingScreenSeconds >= 60 { flushScreenTime() }
 
         // Heads-up reminder: appears `lead` before the break, stays `visibleFor`.
         let lead = settings.breaks.preBreakLeadTime

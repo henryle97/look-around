@@ -202,4 +202,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Shared.updateChecker.start(settings: Shared.settings)
         }
     }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Screen time is buffered in the scheduler and the autosave is debounced,
+        // so a quit would otherwise drop both. Flush and write synchronously.
+        Shared.scheduler?.flushScreenTime()
+        Shared.settings?.save()
+    }
 }
