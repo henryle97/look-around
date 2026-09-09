@@ -201,6 +201,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !UITesting.isEnabled {
             Shared.updateChecker.start(settings: Shared.settings)
         }
+        // Screen time is buffered in the scheduler and the autosave is
+        // debounced, so sleeping drops up to a minute of both — same reason
+        // `applicationWillTerminate` flushes.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
+        ) { _ in
+            Shared.scheduler?.flushScreenTime()
+            Shared.settings?.save()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
