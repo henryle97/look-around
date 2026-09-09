@@ -7,6 +7,7 @@ import Foundation
 let runner = TestRunner()
 registerOfficeHoursTests(runner)
 registerSmartPauseTests(runner)
+registerAwayPolicyTests(runner)
 registerTimeFmtTests(runner)
 registerAppearanceSettingsTests(runner)
 registerSettingsStoreTests(runner)

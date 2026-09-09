@@ -3,17 +3,6 @@ import Combine
 import AppKit
 import UserNotifications
 
-enum BreakKind: String, Codable {
-    case short, long, planned
-    var label: String {
-        switch self {
-        case .short: return "Short break"
-        case .long: return "Long break"
-        case .planned: return "Planned break"
-        }
-    }
-}
-
 struct BreakSession: Equatable {
     var kind: BreakKind
     var title: String
@@ -64,8 +53,11 @@ final class BreakScheduler: ObservableObject {
     private var skipAllowedAt: Date = Date()
     private var postureNextAt: Date
     private var blinkNextAt: Date
-    private var idleEpisodeCounted = false
-    private var idleResetDone = false
+    private var lastTickAt = Date()
+    private var awayCredited = false
+    /// The `workDuration` the running cycle was scheduled with, so a mid-cycle
+    /// change can be rebased against the time already worked.
+    private var activeWorkDuration: TimeInterval
     private var pendingScreenSeconds: Double = 0
     private var recentShortPromptIDs: [String] = []
     private var recentLongPromptIDs: [String] = []
@@ -76,6 +68,7 @@ final class BreakScheduler: ObservableObject {
         self.settings = settings
         let now = Date()
         self.nextBreakAt = now.addingTimeInterval(settings.breaks.workDuration)
+        self.activeWorkDuration = settings.breaks.workDuration
         self.postureNextAt = now.addingTimeInterval(settings.wellness.postureInterval)
         self.blinkNextAt = now.addingTimeInterval(settings.wellness.blinkInterval)
         requestNotificationPermission()
@@ -227,6 +220,7 @@ final class BreakScheduler: ObservableObject {
 
     func resetCycle() {
         nextBreakAt = Date().addingTimeInterval(settings.breaks.workDuration)
+        activeWorkDuration = settings.breaks.workDuration
         shortBreaksCompleted = 0
         isOvertime = false
         overtimeElapsed = 0
@@ -256,7 +250,14 @@ final class BreakScheduler: ObservableObject {
 
     private func tick() {
         let now = Date()
+        // The 1s timer doesn't fire while the Mac is asleep, and can be starved
+        // by load or App Nap, so a tick can land minutes — or hours — after the
+        // previous one. `elapsed` is the real time this tick covers.
+        let elapsed = max(0, now.timeIntervalSince(lastTickAt))
+        lastTickAt = now
         rollDayIfNeeded()
+        reconcileGap(elapsed: elapsed, now: now)
+        rebaseForWorkDurationChange(now: now)
 
         // Manual pause
         if manuallyPaused {
@@ -282,9 +283,11 @@ final class BreakScheduler: ObservableObject {
             return
         }
 
-        // On break: count down
+        // On break: count down. Derived from the wall clock rather than
+        // decremented per tick, so a break slept through completes on wake
+        // instead of resuming with the same seconds left.
         if isOnBreak, var s = session {
-            s.remaining = max(0, s.remaining - 1)
+            s.remaining = max(0, s.total - now.timeIntervalSince(s.startedAt))
             session = s
             let elapsed = s.total - s.remaining
             switch settings.breaks.skipDifficulty {
@@ -352,24 +355,25 @@ final class BreakScheduler: ObservableObject {
             return
         }
 
-        // Away detection: if user idle > 60s, freeze work timer (they're already away).
-        // Away stretches count as natural breaks.
+        // Away detection: idle past the away threshold means they're already
+        // resting — hold the countdown, and credit the stretch as a break once
+        // it covers the pending one (see AwayPolicy).
         let idle = ActivityProbe.idleSeconds()
-        if idle > 60 {
+        if idle > AwayPolicy.minimumAwaySeconds {
+            settings.stats.naturalBreakMinutes += elapsed / 60
+            if awayCredited {
+                nextBreakAt = nextBreakAt.addingTimeInterval(elapsed)
+            } else {
+                applyAway(AwayPolicy.decide(awaySpan: idle, idleSeconds: idle,
+                                            upcomingKind: nextBreakKind(),
+                                            settings: settings.breaks,
+                                            creditsEnabled: settings.smartPause.idleResetsCycle),
+                          elapsed: elapsed, now: now)
+            }
             timeUntilNextBreak = nextBreakAt.timeIntervalSince(now)
-            settings.stats.naturalBreakMinutes += 1.0 / 60.0
-            if idle > 5 * 60 && !idleEpisodeCounted {
-                idleEpisodeCounted = true
-                settings.stats.naturalBreaks += 1
-            }
-            if idle > 10 * 60 && !idleResetDone {
-                idleResetDone = true
-                if settings.smartPause.idleResetsCycle { resetCycle() }
-            }
             return
         }
-        idleEpisodeCounted = false
-        idleResetDone = false
+        awayCredited = false
 
         var remaining = nextBreakAt.timeIntervalSince(now)
 
@@ -418,6 +422,107 @@ final class BreakScheduler: ObservableObject {
 
         // Wellness reminders
         tickWellness(now: now, idle: idle)
+    }
+
+    /// Applies a mid-cycle `workDuration` change to the countdown already
+    /// running, crediting the time worked so far: change 10 → 45 minutes seven
+    /// minutes in and the next break lands in 38, not 45 — and not in 3, which
+    /// is what happens when the new value only takes effect next cycle.
+    /// Shortening below the time already worked makes the break due at once
+    /// (behind the same grace window, so a stepper's intermediate values can't
+    /// trigger one while the user is still adjusting).
+    ///
+    /// Polled from the tick rather than observed: it costs one comparison,
+    /// needs no Combine subscription, and is naturally idempotent under the
+    /// stream of values a stepper or slider writes.
+    private func rebaseForWorkDurationChange(now: Date) {
+        let configured = settings.breaks.workDuration
+        guard configured != activeWorkDuration else { return }
+        let workedSoFar = max(0, activeWorkDuration - nextBreakAt.timeIntervalSince(now))
+        activeWorkDuration = configured
+        // A break in progress reschedules on its own when it ends, and a paused
+        // countdown is driven by `pauseUntil`.
+        guard !isOnBreak, !manuallyPaused else { return }
+        nextBreakAt = max(now.addingTimeInterval(AwayPolicy.wakeGraceSeconds),
+                          now.addingTimeInterval(configured - workedSoFar))
+        timeUntilNextBreak = nextBreakAt.timeIntervalSince(now)
+    }
+
+    // MARK: - away
+
+    /// Reconciles the state a sleeping (or starved) timer left behind.
+    ///
+    /// Runs ahead of the pause and office-hours gates, both of which return
+    /// early: without that ordering `nextBreakAt` would stay hours in the past
+    /// whenever the Mac wakes outside working hours, and the break screen would
+    /// slam up the moment the user unlocks.
+    private func reconcileGap(elapsed: TimeInterval, now: Date) {
+        let gap = elapsed - 1
+        guard gap >= AwayPolicy.minimumAwaySeconds else { return }
+
+        // Wellness reminders fire on absolute dates; unrebased, waking greets
+        // the user with a posture nudge for a session they were never in.
+        if postureNextAt <= now { postureNextAt = now.addingTimeInterval(settings.wellness.postureInterval) }
+        if blinkNextAt <= now { blinkNextAt = now.addingTimeInterval(settings.wellness.blinkInterval) }
+
+        // A break in progress counts down off the wall clock and a manual pause
+        // runs off an absolute `pauseUntil` — both already survive the gap.
+        let paused = manuallyPaused || (settings.pauseUntil.map { $0 > now } ?? false)
+        guard !isOnBreak, !paused else { return }
+
+        let idle = ActivityProbe.idleSeconds()
+        if AwayPolicy.isCorroborated(awaySpan: gap, idleSeconds: idle) {
+            settings.stats.naturalBreakMinutes += AwayPolicy.creditedAwayMinutes(gap)
+        }
+        applyAway(AwayPolicy.decide(awaySpan: gap, idleSeconds: idle,
+                                    upcomingKind: nextBreakKind(),
+                                    settings: settings.breaks,
+                                    creditsEnabled: settings.smartPause.idleResetsCycle),
+                  elapsed: elapsed, now: now)
+    }
+
+    /// Applies an away verdict, then enforces the wake grace period.
+    private func applyAway(_ decision: AwayDecision, elapsed: TimeInterval, now: Date) {
+        switch decision {
+        case .ignore:
+            return
+        case .freeze:
+            nextBreakAt = nextBreakAt.addingTimeInterval(elapsed)
+        case .credit(let kind):
+            creditBreak(kind: kind, at: now)
+            // A planned break deferred before the user stepped away must not
+            // ambush them hours later.
+            deferredPlanned = nil
+            awayCredited = true
+        }
+        nextBreakAt = max(nextBreakAt, now.addingTimeInterval(AwayPolicy.wakeGraceSeconds))
+    }
+
+    /// Records a break the user effectively took by being away. Deliberately
+    /// not routed through `beginBreak`/`endBreak`: no break screen ever
+    /// appeared, so no sound, automation or screen lock should fire either.
+    private func creditBreak(kind: BreakKind, at now: Date) {
+        switch kind {
+        case .long:
+            settings.stats.longBreaksTaken += 1
+            shortBreaksCompleted = 0
+        case .short, .planned:
+            settings.stats.shortBreaksTaken += 1
+            // Cadence advances exactly as a taken break would. Zeroing it (what
+            // `resetCycle()` does) would let frequent absences starve the long
+            // break forever.
+            shortBreaksCompleted += 1
+        }
+        settings.stats.naturalBreaks += 1
+        settings.stats.lastBreakDate = now
+        nextBreakAt = now.addingTimeInterval(settings.breaks.workDuration)
+        activeWorkDuration = settings.breaks.workDuration
+        timeUntilNextBreak = settings.breaks.workDuration
+        preBreakVisible = false
+        countdownVisible = false
+        clearOvertime()
+        settings.stats.snoozesUsedThisCycle = 0
+        recomputeSnoozesLeft()
     }
 
     // MARK: - overtime
@@ -553,6 +658,7 @@ final class BreakScheduler: ObservableObject {
         clearOvertime()
         SoundPlayer.playBreakEnd(settings.appearance)
         nextBreakAt = Date().addingTimeInterval(settings.breaks.workDuration)
+        activeWorkDuration = settings.breaks.workDuration
         timeUntilNextBreak = settings.breaks.workDuration
         // Fresh per-break snooze budget for the next work cycle's pre-break warning.
         settings.stats.snoozesUsedThisCycle = 0

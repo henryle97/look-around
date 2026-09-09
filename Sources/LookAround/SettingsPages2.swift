@@ -163,8 +163,8 @@ struct SmartPausePage: View {
                     .padding(.bottom, 6)
             }
             CardDivider()
-            SettingRow(label: "Reset the break cycle after 10 idle minutes",
-                       subtitle: "Counts long stretches away as natural breaks.") {
+            SettingRow(label: "Count time away as a break taken",
+                       subtitle: "Stepping away, locking the screen or closing the lid for as long as the pending break counts as having taken it.") {
                 Toggle("", isOn: $settings.smartPause.idleResetsCycle).labelsHidden()
             }
         }

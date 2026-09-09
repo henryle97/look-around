@@ -13,6 +13,19 @@ enum SkipDifficulty: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Break kind
+
+enum BreakKind: String, Codable {
+    case short, long, planned
+    var label: String {
+        switch self {
+        case .short: return "Short break"
+        case .long: return "Long break"
+        case .planned: return "Planned break"
+        }
+    }
+}
+
 // MARK: - Break settings (short / long)
 // Defaults follow the stretchly-style cadence (github.com/hovancik/stretchly):
 // a 20-second mini break every 10 minutes, a 5-minute long break every 30

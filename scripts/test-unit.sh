@@ -25,6 +25,7 @@ fi
 SOURCES=(
   Sources/LookAround/Models.swift
   Sources/LookAround/SmartPause.swift
+  Sources/LookAround/AwayPolicy.swift
   Sources/LookAround/ActivityProbe.swift
   Sources/LookAround/Helpers.swift
   Sources/LookAround/SettingsStore.swift
