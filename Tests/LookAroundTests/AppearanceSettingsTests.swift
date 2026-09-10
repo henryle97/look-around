@@ -39,6 +39,19 @@ func registerAppearanceSettingsTests(_ r: TestRunner) {
         try expectEqual(decoded.customEndSoundPath, "")
     }
 
+    r.run("AppearanceSettings: the translucent app theme persists through a round-trip") {
+        var original = AppearanceSettings()
+        original.appTheme = .translucent
+
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(AppearanceSettings.self, from: data)
+        try expectEqual(decoded.appTheme, .translucent)
+        // Raw value is what a settings snapshot on disk carries — pin it so a
+        // rename can't silently reset users to .system on the next launch.
+        let raw = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        try expectEqual(raw?["appTheme"] as? String, "translucent")
+    }
+
     r.run("AppearanceSettings: encode/decode round-trips every field") {
         var original = AppearanceSettings()
         original.gradientIndex = 3

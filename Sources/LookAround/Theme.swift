@@ -10,7 +10,198 @@ extension AppearanceSettings.AppTheme {
         case .system: return nil
         case .dark: return .dark
         case .light: return .light
+        case .translucent: return .dark
         }
+    }
+
+    /// `.translucent` paints the app's own chrome with behind-window vibrancy
+    /// so the desktop shows through; every other theme uses opaque fills.
+    var usesVibrancy: Bool { self == .translucent }
+}
+
+// MARK: - Translucent chrome
+//
+// The translucent theme is deliberately a *chrome* theme: it swaps the opaque
+// `laBG` / `laSide` / `laPopup` fills for an `NSVisualEffectView` backdrop plus
+// a dark scrim that keeps text contrast where the wallpaper is bright. It stays
+// dark in all cases (white ink over an arbitrary desktop is only legible dark),
+// and Reduce Transparency drops it back to the opaque dark fills.
+
+/// The three window-sized surfaces the app paints.
+enum ThemeSurface {
+    case window, sidebar, popup
+
+    var solidFill: Color {
+        switch self {
+        case .window: return .laBG
+        case .sidebar: return .laSide
+        case .popup: return .laPopup
+        }
+    }
+
+    var vibrancyMaterial: NSVisualEffectView.Material {
+        switch self {
+        case .window: return .underWindowBackground
+        case .sidebar: return .sidebar
+        case .popup: return .hudWindow
+        }
+    }
+
+    /// Darkening veil over the blur — the sidebar carries the most because its
+    /// rows are the smallest text in the app.
+    var scrimOpacity: Double {
+        switch self {
+        case .window: return 0.38
+        case .sidebar: return 0.48
+        case .popup: return 0.34
+        }
+    }
+}
+
+/// Behind-window blur. Pinned to `darkAqua` because the translucent theme is
+/// always dark, and these windows are plain `NSWindow`s whose appearance
+/// SwiftUI's `preferredColorScheme` does not reach.
+struct VibrancyBackdrop: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = material
+        view.blendingMode = .behindWindow
+        view.state = .active
+        view.appearance = NSAppearance(named: .darkAqua)
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        view.material = material
+    }
+}
+
+/// Makes the host `NSWindow` see-through for the translucent theme, and puts
+/// back exactly what it changed when the theme is switched away. Only touches a
+/// window it has already modified, so the opaque themes keep whatever
+/// `preferredColorScheme` set up.
+final class WindowChromeView: NSView {
+    var translucent = false {
+        didSet { if translucent != oldValue { apply() } }
+    }
+    private var didMakeTranslucent = false
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        apply()
+    }
+
+    /// Purely a window-configuration hook — never take clicks away from the
+    /// SwiftUI content it sits behind.
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    private func apply() {
+        guard let window else { return }
+        if translucent {
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.titlebarAppearsTransparent = true
+            window.appearance = NSAppearance(named: .darkAqua)
+            didMakeTranslucent = true
+        } else if didMakeTranslucent {
+            window.isOpaque = true
+            window.backgroundColor = .windowBackgroundColor
+            window.titlebarAppearsTransparent = false
+            window.appearance = nil
+            didMakeTranslucent = false
+        }
+    }
+}
+
+struct WindowChrome: NSViewRepresentable {
+    let translucent: Bool
+    func makeNSView(context: Context) -> NSView {
+        let view = WindowChromeView()
+        view.translucent = translucent
+        return view
+    }
+    func updateNSView(_ view: NSView, context: Context) {
+        (view as? WindowChromeView)?.translucent = translucent
+    }
+}
+
+/// True when the surrounding chrome is showing the desktop through it — cards
+/// and other inner fills need more presence over a wallpaper than over `laBG`.
+private struct TranslucentSurfacesKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var laTranslucentSurfaces: Bool {
+        get { self[TranslucentSurfacesKey.self] }
+        set { self[TranslucentSurfacesKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Paints one of the app's window-sized surfaces for the active theme.
+    @ViewBuilder
+    func themedSurface(
+        _ surface: ThemeSurface,
+        theme: AppearanceSettings.AppTheme,
+        reduceTransparency: Bool
+    ) -> some View {
+        if theme.usesVibrancy && !reduceTransparency {
+            self.background {
+                ZStack {
+                    VibrancyBackdrop(material: surface.vibrancyMaterial)
+                    Color.black.opacity(surface.scrimOpacity)
+                }
+                .ignoresSafeArea()
+            }
+        } else {
+            self.background(surface.solidFill)
+        }
+    }
+
+    /// Applies the theme to the whole chrome of a root view: color scheme,
+    /// host-window transparency, and the inner-fill environment flag.
+    func themedChrome(
+        theme: AppearanceSettings.AppTheme,
+        reduceTransparency: Bool,
+        configuresWindow: Bool = true
+    ) -> some View {
+        let translucent = theme.usesVibrancy && !reduceTransparency
+        return self
+            .preferredColorScheme(theme.colorScheme)
+            .environment(\.laTranslucentSurfaces, translucent)
+            .background {
+                if configuresWindow {
+                    WindowChrome(translucent: translucent)
+                }
+            }
+    }
+
+    /// Card / inset-panel fill: the standard `laCard` wash, lifted with a
+    /// hairline edge when the desktop is showing through behind it.
+    func cardSurface(cornerRadius: CGFloat) -> some View {
+        modifier(CardSurface(cornerRadius: cornerRadius))
+    }
+}
+
+struct CardSurface: ViewModifier {
+    let cornerRadius: CGFloat
+    @Environment(\.laTranslucentSurfaces) private var translucent
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                translucent ? Color.white.opacity(0.10) : Color.laCard,
+                in: RoundedRectangle(cornerRadius: cornerRadius)
+            )
+            .overlay {
+                if translucent {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                }
+            }
     }
 }
 

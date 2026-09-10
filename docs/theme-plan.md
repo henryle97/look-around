@@ -68,3 +68,36 @@
 
 Suggested slice order: settings + popup theming (Batch 1) → Glass material
 → full light-mode migration.
+
+## Addendum — the Translucent theme (v2)
+
+A fourth `AppTheme` case, `.translucent`, was added after the original three
+shipped. It is a *chrome* theme rather than a palette: the app stays dark and
+lets the desktop show through its own windows, the look of a wallpaper reading
+through a dark editor.
+
+- **Model** — `AppearanceSettings.AppTheme.translucent`; `colorScheme` maps it
+  to `.dark`, `usesVibrancy` is true only for it. Old snapshots are unaffected
+  (`.system` remains the default).
+- **Surfaces** — `Theme.swift` owns `ThemeSurface` (`window` / `sidebar` /
+  `popup`). `themedSurface(_:theme:reduceTransparency:)` paints either the
+  existing opaque token (`laBG` / `laSide` / `laPopup`) or an
+  `NSVisualEffectView` backdrop (`.underWindowBackground` / `.sidebar` /
+  `.hudWindow`) under a black scrim (0.38 / 0.48 / 0.34) that holds text
+  contrast over a bright wallpaper.
+- **Window chrome** — vibrancy only reaches the desktop if the host window is
+  non-opaque, so `themedChrome(theme:reduceTransparency:configuresWindow:)`
+  flips `isOpaque` / `backgroundColor` / `titlebarAppearsTransparent` on the
+  settings `NSWindow` and pins it to `darkAqua` (these windows are built by
+  `WindowManager`, and `preferredColorScheme` does not reach them). It restores
+  only what it changed, so the other three themes are untouched. The menu-bar
+  popover and the automation sheet pass `configuresWindow: false` — the popover
+  owns its own window and arrow, and stacked see-through layers just read as
+  one blur.
+- **Cards** — `cardSurface(cornerRadius:)` replaces the direct `laCard` fills;
+  over vibrancy it uses a stronger wash plus a hairline edge so cards still
+  separate from the wallpaper. It reads the `laTranslucentSurfaces`
+  environment flag set by `themedChrome`.
+- **Break overlay** — unchanged. It was already dark cinematic in every theme.
+- **A11y** — Reduce Transparency falls back to the opaque dark fills, matching
+  the Liquid Glass rule in item 5 above.

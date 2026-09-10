@@ -53,6 +53,7 @@ enum SettingsRoute: Hashable {
 struct SettingsView: View {
     @EnvironmentObject var settings: SettingsStore
     @EnvironmentObject var scheduler: BreakScheduler
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var route: [SettingsRoute]
 
     init(initial: [SettingsRoute] = [.screenBreaks]) {
@@ -63,16 +64,18 @@ struct SettingsView: View {
         HStack(spacing: 0) {
             sidebar
                 .frame(width: 232)
-                .background(Color.laSide)
+                .themedSurface(.sidebar, theme: theme, reduceTransparency: reduceTransparency)
             Divider().background(Color.laPrimaryText.opacity(0.08))
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.laBG)
+                .themedSurface(.window, theme: theme, reduceTransparency: reduceTransparency)
         }
         .frame(minWidth: 940, minHeight: 700)
-        .preferredColorScheme(settings.appearance.appTheme.colorScheme)
+        .themedChrome(theme: theme, reduceTransparency: reduceTransparency)
         .accessibilityIdentifier("settings.window")
     }
+
+    private var theme: AppearanceSettings.AppTheme { settings.appearance.appTheme }
 
     // MARK: sidebar
     private var sidebar: some View {
@@ -235,7 +238,7 @@ struct Card<Content: View>: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 6)
-        .background(Color.laCard, in: RoundedRectangle(cornerRadius: 16))
+        .cardSurface(cornerRadius: 16)
     }
 }
 
