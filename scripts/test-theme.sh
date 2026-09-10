@@ -1,5 +1,5 @@
 #!/bin/zsh
-# E2E: theme plan — AppTheme (System/Dark/Light) + BreakMaterial
+# E2E: theme plan — AppTheme (System/Dark/Light/Translucent) + BreakMaterial
 # (Frosted/Liquid Glass) pickers persist across a restart, and
 # --reset-state wipes them back to defaults. See docs/theme-plan.md.
 set -uo pipefail
@@ -80,6 +80,18 @@ goto_subpage customizeScreen "settings.customize.background.mode.wallpaper" || e
 "$AX" click "$BUNDLE_ID" settings.customizeScreen.material.liquidGlass >/dev/null
 sleep 0.2
 assert_eq "$("$AX" read "$BUNDLE_ID" settings.customizeScreen.material.value)" "Liquid Glass" "material after click"
+
+log "switching to Translucent and back to Light…"
+goto_page general "settings.general.launchAtLogin" || exit 1
+"$AX" click "$BUNDLE_ID" settings.general.appTheme.translucent >/dev/null
+sleep 0.3
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.general.appTheme.value)" "Translucent" "app theme after translucent click"
+# The translucent theme makes the settings window non-opaque — the window and
+# its controls must still be reachable afterwards.
+wait_for "settings.window" || { echo "✗ FAIL: settings window lost under Translucent"; FAIL=1; }
+"$AX" click "$BUNDLE_ID" settings.general.appTheme.light >/dev/null
+sleep 0.3
+assert_eq "$("$AX" read "$BUNDLE_ID" settings.general.appTheme.value)" "Light" "app theme back to light"
 
 log "waiting for autosave, restarting, re-verifying…"
 sleep 0.6

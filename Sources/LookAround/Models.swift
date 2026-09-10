@@ -269,7 +269,10 @@ enum BreakPromptLibrary {
 // MARK: - Appearance / customization
 struct AppearanceSettings: Codable, Equatable {
     enum AppTheme: String, Codable, CaseIterable, Identifiable {
-        case system, dark, light
+        /// `.translucent` is a dark theme that lets the desktop show through
+        /// the app's own chrome (settings window + menu-bar popup) instead of
+        /// painting opaque fills.
+        case system, dark, light, translucent
         var id: String { rawValue }
         var label: String { rawValue.capitalized }
     }

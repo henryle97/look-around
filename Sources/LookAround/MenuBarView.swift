@@ -6,6 +6,7 @@ struct MenuBarView: View {
     @EnvironmentObject var scheduler: BreakScheduler
     @EnvironmentObject var settings: SettingsStore
     @EnvironmentObject var updateChecker: UpdateChecker
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var tab: PopupTab = .now
 
     enum PopupTab { case now, stats }
@@ -61,8 +62,13 @@ struct MenuBarView: View {
         }
         .padding(14)
         .frame(width: 370)
-        .background(Color.laPopup)
-        .preferredColorScheme(settings.appearance.appTheme.colorScheme)
+        .themedSurface(.popup, theme: settings.appearance.appTheme,
+                       reduceTransparency: reduceTransparency)
+        // The popover owns its window (and its arrow) — theme the content
+        // only, never the window chrome.
+        .themedChrome(theme: settings.appearance.appTheme,
+                      reduceTransparency: reduceTransparency,
+                      configuresWindow: false)
     }
 
     /// Menu labels ignore the surrounding `.tint(.laPrimaryText)` and render dim —

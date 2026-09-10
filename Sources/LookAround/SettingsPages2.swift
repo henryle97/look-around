@@ -440,7 +440,7 @@ struct AlertsPage: View {
             Toggle("", isOn: isOn).labelsHidden()
         }
         .padding(14)
-        .background(Color.laCard, in: RoundedRectangle(cornerRadius: 14))
+        .cardSurface(cornerRadius: 14)
     }
 
     private var countdownCard: some View {
@@ -473,7 +473,7 @@ struct AlertsPage: View {
             }
         }
         .padding(14)
-        .background(Color.laCard, in: RoundedRectangle(cornerRadius: 16))
+        .cardSurface(cornerRadius: 16)
     }
 
     private var overtimeCard: some View {
@@ -505,7 +505,7 @@ struct AlertsPage: View {
             }
         }
         .padding(14)
-        .background(Color.laCard, in: RoundedRectangle(cornerRadius: 16))
+        .cardSurface(cornerRadius: 16)
     }
 }
 
@@ -826,7 +826,12 @@ struct AutomationPage: View {
             .environmentObject(settings)
             .frame(width: 440, height: 380)
             .padding()
+            // A sheet keeps an opaque fill even in the translucent theme —
+            // two layers of see-through chrome stacked read as one blur — so
+            // its cards need the opaque fill too, overriding the flag the
+            // settings window put in the environment.
             .background(Color.laBG)
+            .environment(\.laTranslucentSurfaces, false)
             .preferredColorScheme(settings.appearance.appTheme.colorScheme)
         }
     }
